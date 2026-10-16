@@ -21,7 +21,7 @@ export function InfoPage({ label, title, introduction, sections }: {
         <div className="info-sections">{sections.map(({ title: heading, content }) => <section key={heading}><h2>{heading}</h2><div>{content}</div></section>)}</div>
         <p className="info-contact">Questions? <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a> · <a href="/contact">Contact and support</a></p>
       </main>
-      <footer className="info-footer wrapper"><a href="/">Home</a><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/refund-policy">Refund policy</a><a href="/security">Security</a><a href="/contact">Contact</a></footer>
+      <footer className="info-footer wrapper"><a href="/">Home</a><a href="/about">About</a><a href="/privacy">Privacy</a><a href="/terms">Terms</a><a href="/acceptable-use">Acceptable Use</a><a href="/refund-policy">Refund policy</a><a href="/security">Security</a><a href="/contact">Contact</a></footer>
     </div>
   );
 }
