@@ -237,7 +237,7 @@ export function Generator() {
   }
 
   return (
-    <div id="generator" className="generator" aria-label="Zombie couple video generator">
+    <div id="generator" tabIndex={-1} className="generator" aria-label="Zombie couple video generator">
       <div className="form-panel">
         <div className="panel-heading"><div><span className="panel-overline"><span className="live-dot"/> THE STORY BEGINS HERE</span><h2>Make your moment <em>unforgettable.</em></h2><p>Two adult portraits. One fictional zombie love video. No account needed.</p></div><span className="panel-index">01—02</span></div>
         <div className="tool-label"><span>YOUR CHARACTERS</span><span>JPG, PNG OR WEBP · MAX 10 MB EACH</span></div>
