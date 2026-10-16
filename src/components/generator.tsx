@@ -6,6 +6,7 @@ import { ArrowRight, Check, Copy, Download, ImagePlus, LockKeyhole, Play, Refres
 
 type Role = "zombie" | "survivor";
 type Photo = { file: File; url: string };
+type Review = { status: "idle" | "checking" | "approved" | "rejected"; error?: string };
 type State = "idle" | "working" | "ready" | "failed";
 type Status = { status: string; progress: number; videoUrl?: string; error?: string };
 type HistoryJob = Status & { code: string; resolution: string; createdAt: string };
@@ -19,9 +20,10 @@ function newVideoCode(): string {
   return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-function UploadTile({ role, photo, onFile, onRemove }: {
+function UploadTile({ role, photo, review, onFile, onRemove }: {
   role: Role;
   photo: Photo | null;
+  review: Review;
   onFile: (role: Role, file: File) => void;
   onRemove: (role: Role) => void;
 }) {
@@ -33,6 +35,7 @@ function UploadTile({ role, photo, onFile, onRemove }: {
       {photo ? <>
         <div className="upload-photo-frame"><img className="uploaded-thumb" src={photo.url} alt={`${name} portrait selected: ${photo.file.name}`} /></div>
         <span className="upload-file-name" title={photo.file.name}>{photo.file.name}</span>
+        <span className={`photo-review ${review.status}`} aria-live="polite">{review.status === "checking" ? "AI checking…" : review.status === "approved" ? "✓ AI check passed" : review.status === "rejected" ? "✕ Choose another photo" : ""}</span>
         <button type="button" className="remove-photo" onClick={() => onRemove(role)} aria-label={`Remove ${name} portrait`}><X size={17} /></button>
       </> : <div className="upload-empty"><span className="upload-icon"><ImagePlus size={22} strokeWidth={1.5} /></span><strong>Upload a photo</strong><span>Tap or drag an image here</span></div>}
       <label className={`upload-cover ${photo ? "replace-cover" : ""}`} htmlFor={`upload-${role}`} aria-label={`${photo ? "Replace" : "Upload"} ${name} portrait`}>
@@ -57,7 +60,9 @@ export function Generator() {
   const [zombie, setZombie] = useState<Photo | null>(null);
   const [survivor, setSurvivor] = useState<Photo | null>(null);
   const [consent, setConsent] = useState(false);
+  const [reviews, setReviews] = useState<Record<Role, Review>>({ zombie: { status: "idle" }, survivor: { status: "idle" } });
   const [videoCode, setVideoCode] = useState("");
+  const [codeCopied, setCodeCopied] = useState(false);
   const [resolution, setResolution] = useState<"480p" | "720p">("480p");
   const [aspectRatio, setAspectRatio] = useState<"9:16" | "16:9">("9:16");
   const [stage, setStage] = useState<State>("idle");
@@ -145,7 +150,7 @@ export function Generator() {
       if (!response.ok) throw new Error(data.error || "Could not check the video task.");
       if (data.status === "finished" && data.videoUrl) {
         setVideoUrl(data.videoUrl); setStage("ready"); setProgress(100); setVisualProgress(100);
-        setMessage("Your AI video has been copied to private R2 storage. Download it within three days.");
+        setMessage("Your video is ready. Find it in this browser after refresh, and download it within three days.");
         void refreshHistory();
       } else if (data.status === "failed") {
         setStage("failed"); setMessage(`The model could not finish this video: ${data.error || "Provider error."} No new request has been submitted automatically.`);
@@ -168,19 +173,35 @@ export function Generator() {
     const version = ++versions.current[role];
     setLoadingPhoto(true);
     const url = URL.createObjectURL(file);
+    let previewSelected = false;
     try {
       await loadImage(url);
       if (version !== versions.current[role]) { URL.revokeObjectURL(url); return; }
       if (role === "zombie") setZombie({ file, url }); else setSurvivor({ file, url });
+      previewSelected = true;
+      setReviews(current => ({ ...current, [role]: { status: "checking" } }));
       setMessage("");
+      const form = new FormData();
+      form.append("photo", file);
+      const response = await fetch("/api/video/moderate", { method: "POST", body: form });
+      const data = await response.json() as { approved?: boolean; error?: string };
+      if (version !== versions.current[role]) return;
+      if (!response.ok || !data.approved) throw new Error(data.error || "The AI could not approve this photo.");
+      setReviews(current => ({ ...current, [role]: { status: "approved" } }));
     } catch (error) {
-      URL.revokeObjectURL(url);
-      setMessage(error instanceof Error ? error.message : "Could not load photo.");
-    } finally { setLoadingPhoto(false); }
+      if (version === versions.current[role]) {
+        const detail = error instanceof Error ? error.message : "Could not review photo.";
+        setReviews(current => ({ ...current, [role]: { status: "rejected", error: detail } }));
+        if (!previewSelected) URL.revokeObjectURL(url);
+        setMessage(`${role === "zombie" ? "Photo 1" : "Photo 2"}: ${detail}`);
+      }
+      // The preview remains visible so the user can identify and replace the rejected image.
+    } finally { if (version === versions.current[role]) setLoadingPhoto(false); }
   }
   function removePhoto(role: Role) {
     versions.current[role]++;
     if (role === "zombie") setZombie(null); else setSurvivor(null);
+    setReviews(current => ({ ...current, [role]: { status: "idle" } }));
     setMessage("");
   }
   function regenerateCode() {
@@ -188,6 +209,7 @@ export function Generator() {
     if (poller.current) clearTimeout(poller.current);
     const next = newVideoCode();
     setVideoCode(next);
+    setCodeCopied(false);
     handleRef.current = null;
     sessionStorage.removeItem(SAVED_TASK);
     sessionStorage.removeItem(SAVED_CODE);
@@ -201,6 +223,7 @@ export function Generator() {
     if (!available) { setMessage("Real generation is currently limited to private local testing."); return; }
     if (!zombie || !survivor) { setMessage("Add both adult portraits first."); return; }
     if (!consent) { setMessage("Confirm you have permission to use both photos first."); return; }
+    if (reviews.zombie.status !== "approved" || reviews.survivor.status !== "approved") { setMessage("Wait until both photos pass the AI safety check. Replace any rejected photo before generating."); return; }
     if (submitting.current) return;
     if (!/^[A-F0-9]{32}$/.test(videoCode)) { setMessage("Wait for your video code to be ready."); return; }
     setMessage(""); setCheckoutStep("price");
@@ -212,6 +235,7 @@ export function Generator() {
     if (!available) { setMessage("Real generation is currently limited to private local testing."); return; }
     if (!zombie || !survivor) { setMessage("Add both adult portraits first."); return; }
     if (!consent) { setMessage("Confirm you have permission to use both photos first."); return; }
+    if (reviews.zombie.status !== "approved" || reviews.survivor.status !== "approved") { setMessage("Both photos must pass the AI safety check before generation."); return; }
     if (!/^[A-F0-9]{32}$/.test(videoCode)) { setMessage("Wait for your video code to be ready."); return; }
     submitting.current = true;
     const form = new FormData();
@@ -219,7 +243,7 @@ export function Generator() {
     form.append("resolution", resolution); form.append("aspectRatio", aspectRatio); form.append("consent", "yes"); form.append("code", videoCode);
     if (poller.current) clearTimeout(poller.current);
     handleRef.current = videoCode; setSelectedCode(videoCode); setStage("working"); setVideoUrl(null); setProgress(0); setVisualProgress(3);
-    setMessage("Uploading your photos securely to the video provider…");
+    setMessage("Submitting your checked photos. The server rechecks both images before requesting a video…");
     try {
       const response = await fetch("/api/video", { method: "POST", body: form });
       const data = await response.json() as { code?: string; error?: string };
@@ -241,19 +265,15 @@ export function Generator() {
       <div className="form-panel">
         <div className="panel-heading"><div><span className="panel-overline"><span className="live-dot"/> THE STORY BEGINS HERE</span><h2>Make your moment <em>unforgettable.</em></h2><p>Two adult portraits. One fictional zombie love video. No account needed.</p></div><span className="panel-index">01—02</span></div>
         <div className="tool-label"><span>YOUR CHARACTERS</span><span>JPG, PNG OR WEBP · MAX 10 MB EACH</span></div>
-        <div className="upload-grid"><UploadTile role="zombie" photo={zombie} onFile={selectPhoto} onRemove={removePhoto}/><UploadTile role="survivor" photo={survivor} onFile={selectPhoto} onRemove={removePhoto}/></div>
-        <p className="upload-hint">Use clear photos of two consenting adults. No minors, nudity, sexual content, graphic violence, or images you lack permission to use. During generation, images are uploaded to the configured video provider.</p>
+        <div className="upload-grid"><UploadTile role="zombie" photo={zombie} review={reviews.zombie} onFile={selectPhoto} onRemove={removePhoto}/><UploadTile role="survivor" photo={survivor} review={reviews.survivor} onFile={selectPhoto} onRemove={removePhoto}/></div>
+        <p className="upload-hint">Each photo is sent for AI safety screening as soon as you select it; replace any photo that fails before generating. The server checks both again before sending approved photos to the video provider. Use consenting adult portraits only; AI cannot verify age or consent with certainty.</p>
+        {(reviews.zombie.status !== "idle" || reviews.survivor.status !== "idle") && <div className="review-summary" role="status" aria-live="polite">{(["zombie", "survivor"] as const).map((role, index) => <p key={role}><strong>Photo {index + 1}:</strong> {reviews[role].status === "checking" ? "Checking with AI…" : reviews[role].status === "approved" ? "Passed AI safety check" : reviews[role].status === "rejected" ? reviews[role].error : "Not selected"}</p>)}</div>}
         <fieldset className="resolution-field"><legend>Video quality</legend><div className="resolution-options">{(["480p", "720p"] as const).map(value => <label key={value} className={resolution === value ? "selected" : ""}><input type="radio" name="resolution" value={value} checked={resolution === value} onChange={() => setResolution(value)} disabled={submitting.current}/>{value}</label>)}</div><small>8 seconds · 720p may take more time and provider credits.</small></fieldset>
         <fieldset className="resolution-field"><legend>Video format</legend><div className="resolution-options">{(["9:16", "16:9"] as const).map(value => <label key={value} className={aspectRatio === value ? "selected" : ""}><input type="radio" name="aspectRatio" value={value} checked={aspectRatio === value} onChange={() => setAspectRatio(value)} disabled={submitting.current}/>{value === "9:16" ? "9:16 Portrait" : "16:9 Landscape"}</label>)}</div><small>Choose portrait for mobile or landscape for widescreen playback.</small></fieldset>
-        <div className="video-code-section">
-          <div className="video-code-heading"><span>YOUR VIDEO CODE</span><span>CREATED AUTOMATICALLY</span></div>
-          <div className="video-code-row"><output className="video-code-value" aria-label="Your 32-character video code">{videoCode || "GENERATING…"}</output><button type="button" className="video-code-action" onClick={regenerateCode} disabled={submitting.current || !videoCode} title="Generate a new video code" aria-label="Generate a new video code"><RefreshCw size={17}/><span>New code</span></button><button type="button" className="video-code-action video-code-copy" onClick={() => { if (videoCode) void navigator.clipboard?.writeText(videoCode).then(() => setMessage("Video code copied.")).catch(() => setMessage("Select the code to copy it.")); }} disabled={!videoCode} aria-label="Copy video code"><Copy size={16}/></button></div>
-          <p className="video-code-note">This is a temporary test-task reference, not a paid redemption code. Keep it until your video finishes; starting a new code does not retry the old task.</p>
-        </div>
         <label className="consent-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)}/><span className="custom-check" aria-hidden="true"><Check size={12}/></span><span>I am at least 18; both people are adults who consented to this fictional AI video. I have rights to upload these photos to the provider, and my submission follows the Acceptable Use Policy.</span></label>
-        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={stage === "working" || loadingPhoto || !available}>{stage === "working" ? "Generating your video…" : available ? "Generate AI video" : "Private testing only"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> Demo checkout · No real charge · Provider credits are used</p></div>
+        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={stage === "working" || loadingPhoto || reviews.zombie.status === "checking" || reviews.survivor.status === "checking" || !available}>{stage === "working" ? "Generating your video…" : available ? "Generate AI video" : "Private testing only"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> Demo checkout · No real charge · Provider credits are used</p></div>
         <p className="form-message" role="status" aria-live="polite">{message}</p>
-        <p className="tool-legal">Your photos are sent to the configured provider only if you press Generate. When storage succeeds, generated videos are copied to private R2; downloads expire after three days (physical deletion requires a separate lifecycle rule). <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/acceptable-use">Prohibited content</a></p>
+        <p className="tool-legal">Selecting a photo sends a resized copy to our AI safety service. Originals go to the video provider only after you confirm generation and the server rechecks both photos. When your video is ready, you can return to this browser to play or download it for up to three days after storage. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/acceptable-use">Prohibited content</a></p>
         <div className="form-footer"><span><ShieldCheck size={16}/> Use only authorized adult photos</span><span>VIDEO GENERATION <span aria-hidden="true">↗</span></span></div>
       </div>
       {checkoutStep !== "closed" && <div className="checkout-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setCheckoutStep("closed"); }}>
@@ -261,9 +281,12 @@ export function Generator() {
           <button type="button" className="checkout-close" onClick={() => setCheckoutStep("closed")} aria-label="Close checkout"><X size={19}/></button>
           <span className="checkout-eyebrow">ZOMBIE VIDEO LAB · LOCAL DEMO</span>
           <h2 id="checkout-title">{checkoutStep === "price" ? "Your story, one video." : "Your Video Code"}</h2>
-          <p>{checkoutStep === "price" ? "One 8-second zombie love story using your two portraits. No subscription or credits to manage." : "Copy and keep this code. Your video history stays visible after refresh in the same browser while its signed cookie remains. The code alone cannot recover videos on another device. This demo does not charge you; continuing sends a real request that consumes provider credits."}</p>
+          <p>{checkoutStep === "price" ? "One 8-second zombie love story using your two approved portraits. No subscription or credits to manage." : "Your photos passed the initial AI check. After the demo checkout, the server rechecks them before submitting to the video provider. A successful request uses provider credits."}</p>
           <div className="checkout-summary"><span>One-time video · {resolution} · {aspectRatio} · 8s</span><strong>$9.90</strong></div>
-          {checkoutStep === "checkout" && <div className="video-code-row"><output className="video-code-value" aria-label="Video code to keep">{videoCode}</output><button type="button" className="video-code-action" onClick={() => { void navigator.clipboard?.writeText(videoCode).then(() => setMessage("Video code copied.")).catch(() => setMessage("Select the code to copy it.")); }}><Copy size={16}/> Copy</button></div>}
+          <div className="checkout-code-label">Your video code</div>
+          <div className="video-code-row"><output className="video-code-value" aria-label="Video code to keep">{videoCode}</output><button type="button" className="video-code-action" onClick={() => { void navigator.clipboard.writeText(videoCode).then(() => setCodeCopied(true)).catch(() => setMessage("Select the code to copy it.")); }}><Copy size={16}/> Copy</button><a className="video-code-action" href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Zombie Video Lab video code: ${videoCode}\nKeep this browser cookie; this code alone does not grant access on other devices.\n`)}`} download={`zombie-video-code-${videoCode}.txt`} aria-label="Download video code as a text file"><Download size={16}/> Save code</a><button type="button" className="video-code-action" onClick={regenerateCode} aria-label="Generate another video code"><RefreshCw size={16}/> New</button></div>
+          {codeCopied && <span className="code-copied" role="status">Code copied</span>}
+          <p className="checkout-retention">Your video will remain available in this browser after a refresh for up to 3 days after it is ready. <strong>Download it within 3 days.</strong> Keep this browser’s cookies; clearing them or switching devices may remove access. Your video code alone cannot recover the video on another device.</p>
           <p className="checkout-disclaimer">Illustrative price only · No real payment is taken · Not a purchase receipt.</p>
           <button type="button" className="checkout-primary" onClick={() => checkoutStep === "price" ? setCheckoutStep("checkout") : void generate()}>{checkoutStep === "price" ? "Continue to demo checkout" : "Simulate payment & generate"} <ArrowRight size={18}/></button>
           <button type="button" className="checkout-secondary" onClick={() => setCheckoutStep("closed")}>Not now</button>
@@ -278,7 +301,7 @@ export function Generator() {
           <p>AI rendering may take several minutes. Actual provider progress: {progress}%. You may refresh or return to this browser later.</p>
         </div>}
         <div className="preview-footer"><div><span className="preview-footer-icon"><Play size={15} fill="currentColor"/></span><div><strong>{stage === "ready" ? "Your AI video is ready" : stage === "working" ? "Generating your story" : "Preview your zombie love story"}</strong><span>{stage === "ready" ? "Watch and download within three days after storage" : stage === "working" ? "You can return to this tab to check progress" : "Your finished video will replace this sample preview"}</span></div></div>{videoUrl ? <a className="preview-download" href={selectedCode ? `/api/video/file?code=${encodeURIComponent(selectedCode)}&download=1` : videoUrl} target="_blank" rel="noopener noreferrer" download aria-label="Open generated video to save"><Download size={18}/></a> : <span className="preview-badge">PREVIEW</span>}</div>
-        {videoUrl && <p className="export-help">On mobile, open the video link above and use your browser&apos;s Save or Share menu. Your private R2 download is available for up to three days after storage; keep this browser cookie.</p>}
+        {videoUrl && <p className="export-help">On mobile, open the video link above and use your browser&apos;s Save or Share menu. Your download is available in this browser for up to three days after storage; keep this browser cookie.</p>}
         <section className="video-history" aria-label="Your video history">
           <div className="history-heading"><div><span>YOUR PRIVATE COLLECTION</span><h3>Your videos</h3></div><button type="button" onClick={() => void refreshHistory()} aria-label="Refresh video history"><RefreshCw size={17}/></button></div>
           <p className="history-help">This browser remembers your videos without an account. Save finished videos within three days after storage. Clearing your cookies may prevent recovery.</p>

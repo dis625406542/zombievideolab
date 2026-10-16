@@ -1,3 +1,4 @@
+import { ImageModerationError, moderatePortraits } from "@/lib/image-moderation";
 import { fetchProviderVideo } from "@/lib/provider-video";
 import { putGeneratedVideo } from "@/lib/r2";
 import { NextResponse } from "next/server";
@@ -100,6 +101,12 @@ export async function POST(request: Request) {
   if (!reserve(code)) {
     await changeJob(visitor, code, { status: "failed", error: "Private testing limit reached. No request was sent." });
     return json({ error: "Private testing limit reached. No provider request was sent." }, 429);
+  }
+  // Fail closed: neither original image is sent to a video provider until AI screening approves both.
+  try { await moderatePortraits(images); } catch (error) {
+    const message = error instanceof ImageModerationError ? error.message : "Image safety check unavailable; no video request was sent.";
+    try { await changeJob(visitor, code, { status: "failed", error: message }); } catch (databaseError) { console.error("Could not record blocked video submission", databaseError); }
+    return json({ error: message }, error instanceof ImageModerationError ? error.status : 503);
   }
   try {
     const taskId = await submitForProvider(provider, images, resolution as Resolution, code, aspectRatio);

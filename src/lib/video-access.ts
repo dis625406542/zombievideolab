@@ -10,7 +10,7 @@ let since = Date.now();
 
 export function enabled() {
   if (process.env.NODE_ENV === "production" || process.env.VIDEO_GENERATION_ENABLED !== "true") return false;
-  try { return configured(selectedProvider()); } catch { return false; }
+  try { return !!(process.env.ANTHROPIC_AUTH_TOKEN && process.env.ANTHROPIC_BASE_URL && process.env.ANTHROPIC_MODEL) && configured(selectedProvider()); } catch { return false; }
 }
 export function saveTestJob(code: string, job: Job) {
   testJobs.set(code, { job, expiresAt: Date.now() + 12 * 3600000 });
