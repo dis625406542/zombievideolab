@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { DemoVideo } from "@/components/demo-video";
+import { GeneratedVideo } from "@/components/generated-video";
 import { ArrowRight, Check, Copy, Download, ImagePlus, LockKeyhole, Play, RefreshCw, ShieldCheck, X } from "lucide-react";
 
 type Role = "zombie" | "survivor";
@@ -372,7 +373,11 @@ export function Generator() {
         <p className="upload-hint"><strong>Photo 1: infected person. Photo 2: rescuer.</strong> Upload in that order; we automatically adapt the story to your photos. Each photo is sent for AI safety screening as soon as you select it; replace any photo that fails before generating. The server checks both again before sending approved photos to the video provider. Use consenting adult portraits only; AI cannot verify age or consent with certainty.</p>
         {(reviews.zombie.status !== "idle" || reviews.survivor.status !== "idle") && <div className="review-summary" role="status" aria-live="polite">{(["zombie", "survivor"] as const).map((role, index) => <p key={role}><strong>Photo {index + 1}:</strong> {reviews[role].status === "checking" ? "Checking with AI…" : reviews[role].status === "approved" ? "Passed AI safety check" : reviews[role].status === "rejected" ? reviews[role].error : "Not selected"}</p>)}</div>}
         <fieldset className="resolution-field"><legend>Video quality</legend><div className="resolution-options">{(["480p", "720p"] as const).map(value => <label key={value} className={resolution === value ? "selected" : ""}><input type="radio" name="resolution" value={value} checked={resolution === value} onChange={() => setResolution(value)} disabled={busy || !prices.some(price => price.resolution === value)}/>{value} {prices.find(price => price.resolution === value) ? money(prices.find(price => price.resolution === value)!.amount_minor) : ""}</label>)}</div><small>8 seconds · One video per purchase · No subscription.</small></fieldset>
-        <fieldset className="resolution-field"><legend>Video format</legend><div className="resolution-options">{(["9:16", "16:9"] as const).map(value => <label key={value} className={aspectRatio === value ? "selected" : ""}><input type="radio" name="aspectRatio" value={value} checked={aspectRatio === value} onChange={() => setAspectRatio(value)} disabled={busy}/>{value === "9:16" ? "9:16 Portrait" : "16:9 Landscape"}</label>)}</div><small>Choose portrait for mobile or landscape for widescreen playback.</small></fieldset>
+        <fieldset className="resolution-field"><legend>Video format</legend><div className="resolution-options format-options">{(["9:16", "16:9"] as const).map(value => <label key={value} className={aspectRatio === value ? "selected" : ""}>
+          <input type="radio" name="aspectRatio" value={value} aria-label={value === "9:16" ? "9:16 portrait video" : "16:9 landscape video"} checked={aspectRatio === value} onChange={() => setAspectRatio(value)} disabled={busy}/>
+          <svg className="format-icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><rect x={value === "9:16" ? 9 : 2} y={value === "9:16" ? 2 : 9} width={value === "9:16" ? 18 : 32} height={value === "9:16" ? 32 : 18} rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
+          <span className="format-ratio">{value}</span>
+        </label>)}</div></fieldset>
         <label className="consent-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)}/><span className="custom-check" aria-hidden="true"><Check size={12}/></span><span>I am at least 18; both people are adults who consented to this fictional AI video. I have rights to upload these photos to the provider, and my submission follows the Acceptable Use Policy.</span></label>
         <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={busy || stage === "working" || loadingPhoto || reviews.zombie.status === "checking" || reviews.survivor.status === "checking" || !available}>{stage === "working" ? "Generating your video…" : busy ? "Opening checkout…" : available ? "Generate AI video" : "Checkout unavailable"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> {selectedPrice ? `${money(selectedPrice.amount_minor, selectedPrice.currency)} · One-time payment · No subscription` : "Loading current prices…"}</p></div>
         <p className="form-message" role="status" aria-live="polite">{message}</p>
@@ -397,7 +402,7 @@ export function Generator() {
       </div>}
       <div className="preview-panel" ref={previewRef} aria-label="Video preview" aria-busy={stage === "working"}>
         <div className="preview-header"><span>THE NIGHTFALL STORY <span className="preview-line">/</span> LOOK 01</span><span className="preview-diamond">✧</span></div>
-        <div className="visual-window video-window">{videoUrl ? <video src={videoUrl} controls playsInline preload="metadata" aria-label="Your generated zombie couple video"/> : <DemoVideo />}</div>
+        <div className="visual-window video-window">{videoUrl ? <GeneratedVideo src={videoUrl} controls playsInline preload="metadata" aria-label="Your generated zombie couple video"/> : <DemoVideo />}</div>
         {stage === "working" && <div className="generation-progress" role="progressbar" aria-label="Estimated video generation progress" aria-valuenow={Math.round(visualProgress)} aria-valuemin={0} aria-valuemax={100}>
           <div className="generation-progress-text"><span>CREATING YOUR STORY</span><strong>{Math.round(visualProgress)}% <small>estimated</small></strong></div>
           <div className="generation-track"><span style={{ width: `${visualProgress}%` }}/></div>
@@ -421,7 +426,7 @@ export function Generator() {
                 setStage("ready");
                 previewRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
               }} aria-label={`Play video ${job.code} in the main player`}>
-                <video src={job.videoUrl} muted playsInline preload={index < 6 ? "metadata" : "none"} />
+                <GeneratedVideo src={job.videoUrl!} muted playsInline preload={index < 6 ? "metadata" : "none"} />
                 <span className="history-play-icon" aria-hidden="true"><Play size={18} fill="currentColor" /></span>
               </button>
               <a href={`/api/video/file?code=${encodeURIComponent(job.code)}&download=1`} target="_blank" rel="noopener noreferrer" className="history-download" aria-label={`Download video ${job.code}`}><Download size={15}/> Download</a>

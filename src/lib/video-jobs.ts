@@ -26,7 +26,7 @@ export async function withVideoLock<T>(code: string, action: () => Promise<T>): 
   finally { await pool().query("UPDATE zombievideolab_pro.video_jobs SET delivery_lease=NULL,delivery_locked_until=NULL WHERE code=$1 AND delivery_lease=$2", [code,lease]); }
 }
 export async function saveStoredVideo(visitor: string, code: string, key: string) {
-  await pool().query("UPDATE zombievideolab_pro.video_jobs SET status='finished', progress=100, r2_key=$3, stored_at=now(), completed_at=COALESCE(completed_at,now()), video_url=NULL, storage_error=NULL, storage_retry_at=NULL, error=NULL, updated_at=now() WHERE code=$1 AND visitor_hash=$2 AND r2_key IS NULL", [code, visitor, key]);
+  await pool().query("UPDATE zombievideolab_pro.video_jobs SET status='finished', progress=100, r2_key=$3, stored_at=now(), completed_at=COALESCE(completed_at,now()), storage_error=NULL, storage_retry_at=NULL, error=NULL, updated_at=now() WHERE code=$1 AND visitor_hash=$2 AND r2_key IS NULL", [code, visitor, key]);
 }
 export async function findJob(visitor: string, code: string): Promise<VideoJob | null> {
   const result = await pool().query<VideoJob>("SELECT code,provider,task_id,status,resolution,aspect_ratio,progress,video_url,r2_key,stored_at,completed_at,storage_attempts,storage_retry_at,storage_error,error,created_at FROM zombievideolab_pro.video_jobs WHERE visitor_hash=$1 AND code=$2", [visitor, code]);

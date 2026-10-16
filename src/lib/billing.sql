@@ -57,7 +57,7 @@ INSERT INTO zombievideolab_pro.products(id,code,name,description) VALUES
  ('zombie-couple','zombie-couple','Zombie Couple Video','One fictional, non-graphic 8-second zombie love story from two approved adult photos.') ON CONFLICT DO NOTHING;
 INSERT INTO zombievideolab_pro.product_prices(id,product_id,code,resolution,amount_minor,currency) VALUES
  ('zombie-couple-480p','zombie-couple','zombie-couple-480p','480p',599,'USD'),
- ('zombie-couple-720p','zombie-couple','zombie-couple-720p','720p',999,'USD') ON CONFLICT DO NOTHING;
+ ('zombie-couple-720p','zombie-couple','zombie-couple-720p','720p',99,'USD') ON CONFLICT DO NOTHING;
 
 -- Revocation tombstones handle refund/dispute webhooks arriving before checkout.completed.
 CREATE TABLE IF NOT EXISTS zombievideolab_pro.billing_payment_blocks (

@@ -17,12 +17,19 @@ export async function GET(request: Request) {
     const [job, order] = await Promise.all([findJob(visitor, code), orderFor(visitor, code)]);
     if (order && order.status !== "paid") return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
     if (!job || !videoAvailable(job)) return new Response(null, { status: 404, headers: { "Cache-Control": "no-store" } });
-    // The same stable playback/download route transparently switches to our R2 copy.
-    // Never redirect to an arbitrary URL supplied by the client.
-    const url = job.r2_key
-      ? await getGeneratedVideoUrl(job.r2_key, new URL(request.url).searchParams.get("download") === "1")
-      : await checkedProviderVideoUrl(job.video_url!);
+    // Prefer the original provider source; archival is a backup, not a playback gate.
+    // Keep ownership, payment, retention and exact-host checks on this stable route.
+    // The player can request source=r2 once if the provider URL has expired.
     if (!job.r2_key) after(() => archiveVideo(visitor, code));
+    let url: string | undefined;
+    if (new URL(request.url).searchParams.get("source") !== "r2" && job.video_url) {
+      try { url = await checkedProviderVideoUrl(job.video_url); }
+      catch (error) { if (!job.r2_key) throw error; }
+    }
+    if (!url && job.r2_key) {
+      url = await getGeneratedVideoUrl(job.r2_key, new URL(request.url).searchParams.get("download") === "1");
+    }
+    if (!url) return new Response(null, { status: 503, headers: { "Cache-Control": "no-store" } });
     return new Response(null, { status: 302, headers: { Location: url, "Cache-Control": "private, no-store", "Referrer-Policy": "no-referrer", "X-Robots-Tag": "noindex" } });
   } catch { return new Response(null, { status: 503, headers: { "Cache-Control": "no-store" } }); }
 }

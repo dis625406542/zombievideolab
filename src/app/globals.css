@@ -222,3 +222,14 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
 .purchase-card .purchase-code{display:inline-flex;align-items:center;gap:8px;overflow-wrap:anywhere;word-break:break-all;text-align:left}
 .purchase-card p{margin:0}
 @media(max-width:500px){.purchase-card{padding:11px}.purchase-card button{width:100%;justify-content:center}}
+
+/* Visible format silhouettes instead of text-only orientation choices. */
+.format-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.format-options label{min-width:0;min-height:64px;gap:10px;padding:10px 12px;background:#202020;color:#b7b7bf}
+.format-options label.selected{background:#303034;border-color:#d8d8e0;color:#f0f0f5;box-shadow:inset 0 0 0 1px #d8d8e026}
+.format-options label:focus-within{outline:2px solid #dedee8;outline-offset:3px}
+.format-options input,.format-icon{flex-shrink:0}
+.format-icon{display:block;width:36px;height:36px}
+.format-ratio{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.video-playback-error{position:absolute;inset:auto 12px 52px;z-index:6;margin:0;padding:12px;border:1px solid #aaa5;border-radius:8px;background:#19191af0;color:#eee;font-size:12px;line-height:1.6}
+@media(max-width:360px){.format-options{gap:7px}.format-options label{gap:6px;padding:8px;min-width:0}.format-icon{width:30px;height:30px}.format-ratio{font-size:13px}}
