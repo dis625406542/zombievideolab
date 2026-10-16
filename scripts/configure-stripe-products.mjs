@@ -19,7 +19,7 @@ try {
   if (!environment) throw new Error('A valid Stripe standard or restricted secret key is required');
   const stripe = new Stripe(secret, { timeout: 20000, maxNetworkRetries: 2 });
   const entries = [];
-  for (const [resolution, defaultAmount] of [['480p', 599], ['720p', 99]]) {
+  for (const [resolution, defaultAmount] of [['480p', 599], ['720p', 899]]) {
     const priceId = args[`${resolution}-price`];
     const productId = args[`${resolution}-product`];
     const amount = Number(args[`${resolution}-amount`] ?? defaultAmount);

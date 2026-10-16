@@ -30,7 +30,7 @@ export async function getDemoVideoObject() {
   if (!config) return null;
   return r2Client(config).send(new GetObjectCommand({
     Bucket: config.bucket,
-    Key: process.env.R2_DEMO_VIDEO_KEY?.trim() || "demo.mp4",
+    Key: process.env.R2_DEMO_VIDEO_KEY?.trim() || "demo1.mp4",
   }));
 }
 
@@ -41,7 +41,7 @@ export async function getDemoVideoSource() {
   const expiresIn = 3600;
   const url = await getSignedUrl(client, new GetObjectCommand({
     Bucket: config.bucket,
-    Key: process.env.R2_DEMO_VIDEO_KEY?.trim() || "demo.mp4",
+    Key: process.env.R2_DEMO_VIDEO_KEY?.trim() || "demo1.mp4",
     ResponseContentType: "video/mp4",
     ResponseContentDisposition: "inline",
   }), { expiresIn });

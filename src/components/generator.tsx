@@ -402,14 +402,14 @@ export function Generator() {
       </div>}
       <div className="preview-panel" ref={previewRef} aria-label="Video preview" aria-busy={stage === "working"}>
         <div className="preview-header"><span>THE NIGHTFALL STORY <span className="preview-line">/</span> LOOK 01</span><span className="preview-diamond">✧</span></div>
-        <div className="visual-window video-window">{videoUrl ? <GeneratedVideo src={videoUrl} controls playsInline preload="metadata" aria-label="Your generated zombie couple video"/> : <DemoVideo />}</div>
+        <div className={`visual-window video-window${videoUrl ? "" : " demo-window"}`}>{videoUrl ? <GeneratedVideo src={videoUrl} controls playsInline preload="metadata" aria-label="Your generated zombie couple video"/> : <DemoVideo />}</div>
         {stage === "working" && <div className="generation-progress" role="progressbar" aria-label="Estimated video generation progress" aria-valuenow={Math.round(visualProgress)} aria-valuemin={0} aria-valuemax={100}>
           <div className="generation-progress-text"><span>CREATING YOUR STORY</span><strong>{Math.round(visualProgress)}% <small>estimated</small></strong></div>
           <div className="generation-track"><span style={{ width: `${visualProgress}%` }}/></div>
           <p>AI rendering may take several minutes. Actual provider progress: {progress}%. You may refresh or return to this browser later.</p>
         </div>}
-        <div className="preview-footer"><div><span className="preview-footer-icon"><Play size={15} fill="currentColor"/></span><div><strong>{stage === "ready" ? "Your AI video is ready" : stage === "working" ? "Generating your story" : "Preview your zombie love story"}</strong><span>{stage === "ready" ? "Watch and download within three days after generation" : stage === "working" ? "You can return to this tab to check progress" : "Your finished video will replace this sample preview"}</span></div></div>{videoUrl ? <a className="preview-download" href={selectedCode ? `/api/video/file?code=${encodeURIComponent(selectedCode)}&download=1` : videoUrl} target="_blank" rel="noopener noreferrer" download aria-label="Open generated video to save"><Download size={18}/></a> : <span className="preview-badge">PREVIEW</span>}</div>
-        {videoUrl && <p className="export-help">On mobile, open the video link above and use your browser&apos;s Save or Share menu. Your download is available in this browser for up to three days after generation; keep this browser cookie.</p>}
+        <div className="preview-footer"><div><span className="preview-footer-icon"><Play size={15} fill="currentColor"/></span><div><strong>{stage === "ready" ? "Your AI video is ready" : stage === "working" ? "Generating your story" : "Preview your zombie love story"}</strong><span>{stage === "ready" ? "Watch and download within three days after generation" : stage === "working" ? "You can return to this tab to check progress" : "Your finished video will replace this sample preview"}</span></div></div>{videoUrl ? <a className="preview-download" href={selectedCode ? `/api/video/file?code=${encodeURIComponent(selectedCode)}&download=1` : videoUrl} download aria-label="Download generated video"><Download size={18}/></a> : <span className="preview-badge">PREVIEW</span>}</div>
+        {videoUrl && <p className="export-help">Tap Download to save your video. If your mobile browser opens a preview, use its Save or Share menu. Your download is available in this browser for up to three days after generation; keep this browser cookie.</p>}
         <section className="video-history" aria-label="Your video history">
           <div className="history-heading"><div><span>YOUR PRIVATE COLLECTION</span><h3>Your videos</h3></div><button type="button" onClick={() => void refreshHistory()} aria-label="Refresh video history"><RefreshCw size={17}/></button></div>
           {historyError && <p role="alert" className="history-error">{historyError}</p>}
@@ -429,7 +429,7 @@ export function Generator() {
                 <GeneratedVideo src={job.videoUrl!} muted playsInline preload={index < 6 ? "metadata" : "none"} />
                 <span className="history-play-icon" aria-hidden="true"><Play size={18} fill="currentColor" /></span>
               </button>
-              <a href={`/api/video/file?code=${encodeURIComponent(job.code)}&download=1`} target="_blank" rel="noopener noreferrer" className="history-download" aria-label={`Download video ${job.code}`}><Download size={15}/> Download</a>
+              <a href={`/api/video/file?code=${encodeURIComponent(job.code)}&download=1`} download className="history-download" aria-label={`Download video ${job.code}`}><Download size={15}/> Download</a>
             </article>)}</div>}
         </section>
         {orders.length > 0 && <details className="purchases-details">

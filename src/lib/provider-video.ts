@@ -26,15 +26,72 @@ export async function checkedProviderVideoUrl(value: string): Promise<string> {
   if (!records.length || records.some(r => !publicAddress(r.address))) throw new Error("Provider media host resolved to a private address.");
   return url.href;
 }
-export async function fetchProviderVideo(value: string): Promise<Buffer> {
+async function openProviderVideo(value: string, signal?: AbortSignal) {
   const url = await checkedProviderVideoUrl(value);
   // Redirects are deliberately forbidden: a redirect could escape the trusted host list.
-  const response = await fetch(url, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(90000) });
-  if (!response.ok || !response.body) throw new Error(`Provider video download failed (HTTP ${response.status}).`);
+  const response = await fetch(url, { redirect: "error", cache: "no-store", signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(90000)]) : AbortSignal.timeout(90000) });
+  if (response.status !== 200 || !response.body) {
+    await response.body?.cancel();
+    throw new Error(`Provider video download failed (HTTP ${response.status}).`);
+  }
   const type = response.headers.get("content-type")?.toLowerCase() || "";
-  if (type && !type.includes("video/mp4") && !type.includes("application/octet-stream")) throw new Error("Provider did not return an MP4 video.");
-  if (Number(response.headers.get("content-length")) > maxBytes) throw new Error("Provider video exceeds the 80 MB limit.");
-  const reader = response.body.getReader();
+  if (type && !type.includes("video/mp4") && !type.includes("application/octet-stream")) {
+    await response.body.cancel();
+    throw new Error("Provider did not return an MP4 video.");
+  }
+  if (Number(response.headers.get("content-length")) > maxBytes) {
+    await response.body.cancel();
+    throw new Error("Provider video exceeds the 80 MB limit.");
+  }
+  return response;
+}
+
+// Stream same-origin attachment downloads without buffering a complete video in a function response.
+export async function streamProviderVideo(value: string, signal: AbortSignal) {
+  const response = await openProviderVideo(value, signal);
+  const reader = response.body!.getReader();
+  const prefix: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (size < 16) {
+      const part = await reader.read();
+      if (part.done) throw new Error("Provider returned an invalid MP4 video.");
+      prefix.push(part.value);
+      size += part.value.byteLength;
+      if (size > maxBytes) throw new Error("Provider video exceeds the 80 MB limit.");
+    }
+    if (Buffer.concat(prefix).toString("ascii", 4, 8) !== "ftyp") throw new Error("Provider returned an invalid MP4 video.");
+  } catch (error) {
+    await reader.cancel().catch(() => undefined);
+    throw error;
+  }
+  const expected = Number(response.headers.get("content-length")) || null;
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        if (prefix.length) { controller.enqueue(prefix.shift()!); return; }
+        const { done, value } = await reader.read();
+        if (done) {
+          if (expected !== null && size !== expected) throw new Error("Provider video download was incomplete.");
+          controller.close();
+          return;
+        }
+        size += value.byteLength;
+        if (size > maxBytes) throw new Error("Provider video exceeds the 80 MB limit.");
+        controller.enqueue(value);
+      } catch (error) {
+        await reader.cancel().catch(() => undefined);
+        controller.error(error);
+      }
+    },
+    cancel(reason) { return reader.cancel(reason); },
+  });
+  return { body, contentLength: expected };
+}
+
+export async function fetchProviderVideo(value: string): Promise<Buffer> {
+  const response = await openProviderVideo(value);
+  const reader = response.body!.getReader();
   const parts: Uint8Array[] = [];
   let size = 0;
   try {

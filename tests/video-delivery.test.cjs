@@ -7,7 +7,7 @@ Module._extensions['.ts'] = (module, filename) => module._compile(ts.transpileMo
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022, esModuleInterop: true },
 }).outputText, filename);
 const code = 'A'.repeat(32);
-let job, visitor, paid, available, trusted, updates;
+let job, visitor, paid, available, trusted, updates, signedDownload;
 const source = 'https://provider.example/video.mp4';
 const backup = 'https://backup.example/video.mp4';
 const stubs = {
@@ -15,7 +15,7 @@ const stubs = {
   '@/lib/video-jobs': { findJob: async () => job, videoAvailable: () => available },
   '@/lib/billing-orders': { orderFor: async () => ({ status: paid ? 'paid' : 'refunded' }) },
   '@/lib/video-visitor': { visitorFrom: () => visitor },
-  '@/lib/r2': { getGeneratedVideoUrl: async () => backup },
+  '@/lib/r2': { getGeneratedVideoUrl: async (_key, download) => { signedDownload = download; return backup; } },
   '@/lib/provider-video': { checkedProviderVideoUrl: async value => { if (!trusted) throw new Error('Untrusted host'); return value; } },
   '@/lib/video-delivery': { archiveVideo: async () => {} },
 };
@@ -34,13 +34,15 @@ function reset() {
 }
 const request = query => new Request(`https://site.example/api/video/file?code=${code}${query || ''}`);
 
-test('playback and download prefer the provider source, even after R2 archival', async () => {
+test('playback prefers the provider but downloads use the archived attachment', async () => {
   reset();
-  for (const query of ['', '&download=1']) {
-    const response = await GET(request(query));
-    assert.equal(response.status, 302);
-    assert.equal(response.headers.get('location'), source);
-  }
+  const playback = await GET(request());
+  assert.equal(playback.status, 302);
+  assert.equal(playback.headers.get('location'), source);
+  const download = await GET(request('&download=1'));
+  assert.equal(download.status, 302);
+  assert.equal(download.headers.get('location'), backup);
+  assert.equal(signedDownload, true);
 });
 test('R2 remains a fallback for browser playback errors, legacy jobs, or an untrusted provider source', async () => {
   reset();

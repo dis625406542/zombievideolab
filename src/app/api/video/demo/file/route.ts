@@ -3,7 +3,7 @@ import { getDemoVideoObject } from "@/lib/r2";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// A fixed, deliberately public 4 MB sample; visitor-controlled object keys are never accepted.
+// A fixed, deliberately public 720p landscape sample (under 12 MB); visitor-controlled object keys are never accepted.
 // Same-origin full response enables explicit browser Cache Storage and fast reloads.
 export async function GET() {
   try {

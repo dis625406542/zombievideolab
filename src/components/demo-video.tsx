@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
-const version = process.env.NEXT_PUBLIC_DEMO_CACHE_VERSION || "1";
+const version = `demo1-720p-16x9-${process.env.NEXT_PUBLIC_DEMO_CACHE_VERSION || "1"}`;
 const source = `/api/video/demo/file?v=${encodeURIComponent(version)}`;
 const cacheName = "zvl-public-demo-v1";
 const cacheMaxAge = 24 * 60 * 60 * 1000;
@@ -80,17 +80,17 @@ export function DemoVideo({ lazy = false, autoPlay = true }: { lazy?: boolean; a
   }, [attempt, active]);
 
   return <div ref={container} className="demo-player">
-    <div className="demo-format-strip" aria-label="Sample: 480p, 8 seconds, portrait-look footage">
+    <div className="demo-format-strip" aria-label="Sample: 720p, 8 seconds, 16:9 landscape">
       <span className="demo-format-title"><span className="demo-status-dot"/> SAMPLE VIDEO</span>
-      <div className="demo-format-tags"><span>480p</span><span>8s</span><span>PORTRAIT LOOK</span></div>
+      <div className="demo-format-tags"><span>720p</span><span>8s</span><span>16:9</span></div>
     </div>
     <div className="demo-media">
       {url && !failed ? <video
-        key={url} src={url} poster="/demo-poster.webp" controls autoPlay={autoPlay} muted loop playsInline preload={autoPlay ? "auto" : "metadata"}
-        aria-label="Zombie couple video sample, 480p, 8 seconds, portrait-look footage"
+        key={url} src={url} poster="/demo1-poster.webp" controls autoPlay={autoPlay} muted loop playsInline preload={autoPlay ? "auto" : "metadata"}
+        aria-label="Zombie couple video sample, 720p, 8 seconds, 16:9 landscape"
         onError={() => setFailed(true)}
       /> : <>
-        <img className="scene-image" src="/demo-poster.webp" alt="Sample preview still showing a couple in a sunlit field"/>
+        <img className="scene-image" src="/demo1-poster.webp" alt="Sample preview of a rescuer searching with a flashlight"/>
         <div className="demo-fallback">
           <span className="scene-caption-top">A STORY BEYOND THE END</span>
           <strong>Love survives<br/><em>everything.</em></strong>
