@@ -11,7 +11,7 @@ export async function GET(request:Request) {
  try {
   const prices=await catalog();
   const visitor=visitorFrom(request);
-  if(!visitor) {const response=json({enabled:checkoutReady(),testMode:stripeEnvironment()==="test",prices,orders:[]});newVisitor(response);return response;}
+  if(!visitor) {const response=json({enabled:checkoutReady(),testMode:stripeConfigured() && stripeEnvironment()==="test",prices,orders:[]});newVisitor(response);return response;}
   const code=new URL(request.url).searchParams.get("code");
   if(code) {
    if(!/^[A-F0-9]{32}$/.test(code)) return json({error:"Invalid video code."},400);
@@ -22,6 +22,6 @@ export async function GET(request:Request) {
    }
    return json({order:publicOrder(order)});
   }
-  return json({enabled:checkoutReady(),testMode:stripeEnvironment()==="test",prices,orders:(await ordersFor(visitor)).map(publicOrder)});
+  return json({enabled:checkoutReady(),testMode:stripeConfigured() && stripeEnvironment()==="test",prices,orders:(await ordersFor(visitor)).map(publicOrder)});
  } catch {return json({error:"Payment status is temporarily unavailable. Do not pay again; check this browser later."},503);}
 }

@@ -2,6 +2,7 @@ import nextEnv from '@next/env';
 import pg from 'pg';
 import Stripe from 'stripe';
 import { matchesStripePrice } from '../src/lib/billing-validation.ts';
+import { stripeKeyEnvironment } from '../src/lib/stripe-key.ts';
 
 // Explicit synchronization only: routine migrations never overwrite catalog prices.
 // Example: npm run stripe:configure -- --480p-price=price_... --480p-product=prod_... --720p-price=price_... --720p-product=prod_...
@@ -14,8 +15,8 @@ const args = Object.fromEntries(process.argv.slice(2).map(arg => {
 let client;
 try {
   const secret = process.env.STRIPE_SECRET_KEY?.trim();
-  if (!/^sk_(test|live)_/.test(secret ?? '')) throw new Error('A Stripe secret key is required');
-  const environment = secret.startsWith('sk_live_') ? 'live' : 'test';
+  const environment = stripeKeyEnvironment(secret);
+  if (!environment) throw new Error('A valid Stripe standard or restricted secret key is required');
   const stripe = new Stripe(secret, { timeout: 20000, maxNetworkRetries: 2 });
   const entries = [];
   for (const [resolution, defaultAmount] of [['480p', 599], ['720p', 999]]) {
