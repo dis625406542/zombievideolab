@@ -1,12 +1,12 @@
 import { InfoPage } from "@/components/info-page";
 import { infoMetadata } from "@/lib/info";
 
-export const metadata = infoMetadata("About", "Zombie Video Lab explores fictional zombie love videos built from two adult portraits.", "/about");
+export const metadata = infoMetadata("About", "Two consenting adult portraits become one fictional 8-second zombie love video.", "/about");
 
 export default function Page() {
-  return <InfoPage label="THE PROJECT" title="About" introduction="Zombie Video Lab explores fictional zombie love videos built from two adult portraits." sections={[
-    { title: "What is available", content: <p>A private local integration sends two permitted portraits to the configured provider (PoYo or YIR) for an 8-second 480p or 720p video. Public generation and paid checkout are not enabled. The illustration on the home page is original concept art, not a model output.</p> },
-    { title: "What is planned", content: <p>We want a simple single-video purchase rather than a subscription, with durable order tracking, retries, private downloads and disclosed file lifetimes. These features are not yet live.</p> },
-    { title: "Who should use it", content: <p>Use only your photos or images of consenting adults you have permission to process. This is fictional entertainment and must not be used for deceptive impersonation. We are not affiliated with any film or game franchise.</p> },
+  return <InfoPage label="THE PROJECT" title="About" introduction="Two consenting adult portraits become one fictional 8-second zombie love video." sections={[
+    { title: "The product", content: <p>Choose 480p or 720p, portrait or landscape. When checkout is available, pay once through Stripe; server-verified payment starts generation. No subscription, account, credits or email delivery.</p> },
+    { title: "Your results", content: <p>Finished videos can be downloaded in the same browser for up to three days after storage. The video code identifies an order but does not restore cross-device access.</p> },
+    { title: "Responsible use", content: <p>Upload only authorized portraits of consenting adults. AI results vary. We are not affiliated with any film or game franchise.</p> },
   ]} />;
 }

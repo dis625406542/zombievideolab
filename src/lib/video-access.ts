@@ -1,4 +1,5 @@
 import "server-only";
+import { storageConfigured } from "./r2";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { configured, selectedProvider, type ProviderName } from "./video-provider";
 
@@ -9,8 +10,8 @@ let used = 0;
 let since = Date.now();
 
 export function enabled() {
-  if (process.env.NODE_ENV === "production" || process.env.VIDEO_GENERATION_ENABLED !== "true") return false;
-  try { return !!(process.env.ANTHROPIC_AUTH_TOKEN && process.env.ANTHROPIC_BASE_URL && process.env.ANTHROPIC_MODEL) && configured(selectedProvider()); } catch { return false; }
+  if (process.env.VIDEO_GENERATION_ENABLED !== "true") return false;
+  try { return !!(process.env.ANTHROPIC_AUTH_TOKEN && process.env.ANTHROPIC_BASE_URL && process.env.ANTHROPIC_MODEL) && configured(selectedProvider()) && storageConfigured() && !!(process.env.DATABASE_PRO_URL || process.env.DIRECT_PRO_URL) && (process.env.VIDEO_HANDLE_SECRET?.length ?? 0) >= 32; } catch { return false; }
 }
 export function saveTestJob(code: string, job: Job) {
   testJobs.set(code, { job, expiresAt: Date.now() + 12 * 3600000 });

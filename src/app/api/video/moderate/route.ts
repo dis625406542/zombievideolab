@@ -1,13 +1,21 @@
 import { ImageModerationError, moderatePortraits } from "@/lib/image-moderation";
 import { enabled, sameOrigin } from "@/lib/video-access";
+import { consumeLimit } from "@/lib/billing-catalog";
+import { visitorFrom } from "@/lib/video-visitor";
 import { NextResponse } from "next/server";
 
 export const runtime = "nodejs";
+export const maxDuration = 180;
 export async function POST(request: Request) {
   const reply = (data: unknown, status: number) => NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } });
-  if (!enabled()) return reply({ error: "Image safety screening is currently limited to private local testing." }, 403);
+  if (!enabled()) return reply({ error: "Image safety screening is temporarily unavailable. No payment has been taken." }, 403);
   if (!sameOrigin(request)) return reply({ error: "Invalid request origin." }, 403);
   if (Number(request.headers.get("content-length") || 0) > 11 * 1024 * 1024) return reply({ error: "Photo exceeds the 10 MB limit." }, 413);
+  const visitor=visitorFrom(request);
+  if(!visitor) return reply({error:"Refresh the page first and allow the browser cookie."},401);
+  try {
+    if(!await consumeLimit("moderation",visitor,30) || !await consumeLimit("moderation-global","all",300,86400)) return reply({error:"Too many photo checks. Please try again later."},429);
+  } catch {return reply({error:"Image safety check unavailable."},503);}
   let file: FormDataEntryValue | null;
   try { file = (await request.formData()).get("photo"); } catch { return reply({ error: "Upload a valid photo." }, 400); }
   if (!(file instanceof File) || !["image/jpeg", "image/png", "image/webp"].includes(file.type) || file.size < 1 || file.size > 10 * 1024 * 1024) return reply({ error: "Use a JPG, PNG or WebP photo under 10 MB." }, 400);

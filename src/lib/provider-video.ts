@@ -16,7 +16,7 @@ function publicAddress(address: string) {
     parts[0] === 192 && parts[1] === 0 || parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)
   );
 }
-async function checkedUrl(value: string): Promise<string> {
+export async function checkedProviderVideoUrl(value: string): Promise<string> {
   const url = new URL(value);
   if (url.protocol !== "https:" || url.port || url.username || url.password || isIP(url.hostname)) throw new Error("Provider video URL is not allowed.");
   const hosts = (process.env.PROVIDER_VIDEO_HOSTS || "").split(",").map(h => h.trim().toLowerCase()).filter(Boolean);
@@ -27,7 +27,7 @@ async function checkedUrl(value: string): Promise<string> {
   return url.href;
 }
 export async function fetchProviderVideo(value: string): Promise<Buffer> {
-  const url = await checkedUrl(value);
+  const url = await checkedProviderVideoUrl(value);
   // Redirects are deliberately forbidden: a redirect could escape the trusted host list.
   const response = await fetch(url, { redirect: "error", cache: "no-store", signal: AbortSignal.timeout(90000) });
   if (!response.ok || !response.body) throw new Error(`Provider video download failed (HTTP ${response.status}).`);

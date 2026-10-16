@@ -1,5 +1,4 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
+import { buildVideoPrompt, type PromptScenario } from "./video-prompt";
 import { isIP } from "node:net";
 import type { Resolution, AspectRatio } from "./poyo";
 
@@ -8,8 +7,6 @@ import type { Resolution, AspectRatio } from "./poyo";
 // https://yir.ai/docs/reference/files/create-files
 const base = "https://gateway.yir.ai";
 const fileIdPattern = /^file_[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-const prompt = readFileSync(join(process.cwd(), "public", "Prompt"), "utf8").split(/^english:\s*$/im)[1]?.trim();
-if (!prompt) throw new Error("English video prompt is missing from public/Prompt.");
 
 function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid YIR response.");
@@ -49,13 +46,13 @@ async function api(path: string, init: RequestInit, timeout = 30000): Promise<Re
 function json(body: unknown): RequestInit {
   return { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
-export function makeYirRequest(ids: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16") {
+export function makeYirRequest(ids: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral") {
   if (ids.length !== 2 || (resolution !== "480p" && resolution !== "720p")) throw new Error("Two photos and a supported resolution are required.");
   if (aspectRatio !== "9:16" && aspectRatio !== "16:9") throw new Error("Unsupported aspect ratio.");
   return {
     model: process.env.YIR_MODEL_ID?.trim() || "bytedance/seedance-2.0",
     input: {
-      type: "reference", prompt: `${process.env.YIR_REFERENCE_SUBJECTS === "true" ? "@Image1 is the girlfriend. @Image2 is the boyfriend." : "The first reference image is the girlfriend; the second reference image is the boyfriend."} Preserve both characters' identities from their respective reference images.\n\n${prompt}`,
+      type: "reference", prompt: buildVideoPrompt(scenario, aspectRatio, process.env.YIR_REFERENCE_SUBJECTS === "true"),
       references: ids.map((id, index) => ({ role: "reference_image", file_id: fileId(id), ...(process.env.YIR_REFERENCE_SUBJECTS === "true" ? { subject: `Image${index + 1}` } : {}) })),
     },
     parameters: { duration: 8, resolution, aspect_ratio: aspectRatio },
@@ -112,10 +109,10 @@ export async function uploadYirPortrait(file: File): Promise<string> {
   if (state.status !== "ready") throw new Error("YIR did not finish processing the uploaded photo.");
   return id;
 }
-export async function submitYirVideo(ids: string[], resolution: Resolution, idempotencyKey: string, aspectRatio: AspectRatio = "9:16"): Promise<string> {
+export async function submitYirVideo(ids: string[], resolution: Resolution, idempotencyKey: string, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral"): Promise<string> {
   const maxCost = process.env.YIR_MAX_COST_USD?.trim();
   if (!maxCost || !/^(?:0|[1-9]\d{0,12})(?:\.\d{1,6})?$/.test(maxCost) || Number(maxCost) <= 0) throw new Error("YIR_MAX_COST_USD must be a positive USD amount before generation.");
-  const input = makeYirRequest(ids, resolution, aspectRatio);
+  const input = makeYirRequest(ids, resolution, aspectRatio, scenario);
   const quote = await api("/v1/videos/quotes", json(input));
   if (object(quote.supply).available !== true) throw new Error("No YIR route supports these reference photos and video settings.");
   const notices = Array.isArray(quote.parameter_notices) ? quote.parameter_notices : [];

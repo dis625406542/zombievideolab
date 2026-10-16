@@ -22,3 +22,13 @@ ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS aspect_ratio 
 
 ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS r2_key text;
 ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS stored_at timestamptz;
+
+-- Delivery readiness and R2 archival are independent. Run before deploying async delivery.
+ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS completed_at timestamptz;
+ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS storage_attempts integer NOT NULL DEFAULT 0;
+ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS storage_retry_at timestamptz;
+ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS storage_error text;
+UPDATE zombievideolab_pro.video_jobs SET completed_at=COALESCE(stored_at,updated_at)
+ WHERE completed_at IS NULL AND (r2_key IS NOT NULL OR video_url IS NOT NULL);
+CREATE INDEX IF NOT EXISTS video_jobs_archive_pending_idx ON zombievideolab_pro.video_jobs(storage_retry_at)
+ WHERE r2_key IS NULL AND video_url IS NOT NULL;

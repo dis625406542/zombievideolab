@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 // Server-only credentials. Never expose an API that signs an arbitrary visitor-supplied key.
@@ -57,7 +57,7 @@ export async function putGeneratedVideo(code: string, body: Buffer) {
   await r2Client(config).send(new PutObjectCommand({
     Bucket: config.bucket, Key: key, Body: body, ContentType: "video/mp4",
     CacheControl: "private, no-store",
-  }));
+  }), { abortSignal: AbortSignal.timeout(90000) });
   return key;
 }
 export async function getGeneratedVideoUrl(key: string, download = false) {
@@ -67,4 +67,33 @@ export async function getGeneratedVideoUrl(key: string, download = false) {
     Bucket: config.bucket, Key: key, ResponseContentType: "video/mp4",
     ResponseContentDisposition: download ? "attachment; filename=zombie-couple-video.mp4" : "inline",
   }), { expiresIn: 300 });
+}
+
+export function storageConfigured() { return !!getR2Config(); }
+export type InputPhoto = { key: string; type: string };
+function inputConfig(key: string) {
+  const config = getR2Config();
+  if (!config || !/^inputs\/[A-F0-9]{32}\/[01]-[0-9a-f-]{36}\.image$/.test(key)) throw new Error("Private input unavailable.");
+  return config;
+}
+export async function putInputPhoto(order: string, index: number, file: File): Promise<InputPhoto> {
+  const key = `inputs/${order}/${index}-${crypto.randomUUID()}.image`;
+  const config = inputConfig(key);
+  await r2Client(config).send(new PutObjectCommand({ Bucket: config.bucket, Key: key, Body: Buffer.from(await file.arrayBuffer()), ContentType: file.type, CacheControl: "private, no-store" }));
+  return { key, type: file.type };
+}
+export async function readInputPhotos(photos: InputPhoto[]) {
+  if (photos.length !== 2) throw new Error("Two saved photos are required.");
+  return Promise.all(photos.map(async (photo, i) => {
+    const config = inputConfig(photo.key);
+    const result = await r2Client(config).send(new GetObjectCommand({Bucket: config.bucket, Key: photo.key}));
+    if (!result.Body || (result.ContentLength ?? 0) > 10 * 1024 * 1024) throw new Error("Saved photo unavailable.");
+    return new File([Uint8Array.from(await result.Body.transformToByteArray()).buffer], `portrait-${i}.image`, {type: photo.type});
+  }));
+}
+export async function deleteInputPhotos(photos: InputPhoto[]) {
+  await Promise.all(photos.map(async ({key}) => {
+    const config = inputConfig(key);
+    await r2Client(config).send(new DeleteObjectCommand({Bucket:config.bucket,Key:key}));
+  }));
 }

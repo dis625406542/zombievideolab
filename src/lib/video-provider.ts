@@ -2,6 +2,8 @@ import "server-only";
 import { getVideoStatus as poyoStatus, submitVideo as poyoSubmit, uploadPortrait as poyoUpload, type Resolution, type AspectRatio } from "./poyo";
 import { getYirStatus, submitYirVideo, uploadYirPortrait } from "./yir";
 
+import type { PromptScenario } from "./video-prompt";
+
 export type ProviderName = "poyo" | "yir";
 export function selectedProvider(): ProviderName {
   const name = process.env.VIDEO_PROVIDER?.trim().toLowerCase() || "poyo";
@@ -14,11 +16,11 @@ export function configured(provider: ProviderName) {
     ? !!(process.env.poyo_seedance_token || process.env.POYO_API_KEY)
     : !!(process.env.YIR_API_KEY && cap && /^(?:0|[1-9]\d{0,12})(?:\.\d{1,6})?$/.test(cap) && Number(cap) > 0 && process.env.VIDEO_HANDLE_SECRET?.length && process.env.VIDEO_HANDLE_SECRET.length >= 32);
 }
-export async function submitForProvider(provider: ProviderName, files: File[], resolution: Resolution, code: string, aspectRatio: AspectRatio = "9:16"): Promise<string> {
+export async function submitForProvider(provider: ProviderName, files: File[], resolution: Resolution, code: string, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral"): Promise<string> {
   const upload = provider === "poyo" ? poyoUpload : uploadYirPortrait;
   const urls = [];
   for (const file of files) urls.push(await upload(file));
-  return provider === "poyo" ? poyoSubmit(urls, resolution, aspectRatio) : submitYirVideo(urls, resolution, `zvl-${code}`, aspectRatio);
+  return provider === "poyo" ? poyoSubmit(urls, resolution, aspectRatio, scenario) : submitYirVideo(urls, resolution, `zvl-${code}`, aspectRatio, scenario);
 }
 export async function statusForProvider(provider: ProviderName, id: string) {
   return provider === "poyo" ? poyoStatus(id) : getYirStatus(id);
