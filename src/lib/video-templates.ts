@@ -15,7 +15,7 @@ export const VIDEO_TEMPLATES = {
   },
   "tiptoeing-in-my-jordans": {
     id: "tiptoeing-in-my-jordans", productId: "tiptoeing-in-my-jordans", path: "/video/tiptoeing-in-my-jordans", promptVersion: "tiptoeing-v3", durationSeconds: 15,
-    title: "Tiptoeing In My Jordans AI video generator", overline: "TWO PHOTOS. ONE PLAYFUL MOMENT.",
+    title: "Tiptoeing In My Jordans AI video generator", overline: "YOUR CAST. ONE PLAYFUL MOMENT.",
     heading: "Choose who dances", emphasis: "and who watches.",
     intro: "Make your own version of the Tiptoeing In My Jordans meme. Our ready-made template guides the scene, reactions and footwork; no prompt writing needed.",
     roles: ["The dancer", "Seated observer"],
@@ -35,7 +35,17 @@ export function parseTemplate(value: unknown): TemplateId | null {
   return typeof value === "string" && Object.hasOwn(VIDEO_TEMPLATES, value) ? value as TemplateId : null;
 }
 export function videoTemplate(id: TemplateId = DEFAULT_TEMPLATE) { return VIDEO_TEMPLATES[id]; }
-export type PromptContext = { templateId: TemplateId; promptVersion: string };
+export type SceneId = "dancer-only" | "two-person";
+// Missing scene means the existing two-photo workflow (old clients and orders).
+export function parseScene(templateId: TemplateId, value: unknown): SceneId | null {
+  if (value === null || value === undefined || value === "two-person") return "two-person";
+  return templateId === "tiptoeing-in-my-jordans" && value === "dancer-only" ? "dancer-only" : null;
+}
+export function requiredPhotoCount(templateId: TemplateId, sceneId?: SceneId): 1 | 2 {
+  if (!parseScene(templateId, sceneId)) throw new Error("Unknown video scene.");
+  return templateId === "tiptoeing-in-my-jordans" && sceneId === "dancer-only" ? 1 : 2;
+}
+export type PromptContext = { templateId: TemplateId; promptVersion: string; sceneId?: SceneId; promptSnapshot?: string | null };
 
 // Resolve immutable order snapshots, not the latest template, when retrying a paid video.
 export function videoSpec(context?: PromptContext) {
@@ -44,6 +54,6 @@ export function videoSpec(context?: PromptContext) {
   if (template.id === "zombie-couple" && version === "zombie-v1") return { durationSeconds: 8, referenceVideo: false, generateAudio: false } as const;
   if (template.id === "tiptoeing-in-my-jordans" && version === "tiptoeing-v1") return { durationSeconds: 8, referenceVideo: false, generateAudio: false } as const;
   if (template.id === "tiptoeing-in-my-jordans" && version === "tiptoeing-v2") return { durationSeconds: 15, referenceVideo: true, generateAudio: false } as const;
-  if (template.id === "tiptoeing-in-my-jordans" && (version === "tiptoeing-v3" || version === "tiptoeing-v4")) return { durationSeconds: 15, referenceVideo: true, generateAudio: true } as const;
+  if (template.id === "tiptoeing-in-my-jordans" && (version === "tiptoeing-v3" || version === "tiptoeing-v4" || version === "tiptoeing-db-v1")) return { durationSeconds: 15, referenceVideo: true, generateAudio: true } as const;
   throw new Error("This purchase uses an unavailable prompt version. Contact support; do not pay again.");
 }

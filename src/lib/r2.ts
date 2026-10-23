@@ -83,7 +83,7 @@ export async function putInputPhoto(order: string, index: number, file: File): P
   return { key, type: file.type };
 }
 export async function readInputPhotos(photos: InputPhoto[]) {
-  if (photos.length !== 2) throw new Error("Two saved photos are required.");
+  if (photos.length < 1 || photos.length > 2) throw new Error("One or two saved photos are required.");
   return Promise.all(photos.map(async (photo, i) => {
     const config = inputConfig(photo.key);
     const result = await r2Client(config).send(new GetObjectCommand({Bucket: config.bucket, Key: photo.key}));

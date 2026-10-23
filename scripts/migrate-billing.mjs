@@ -14,6 +14,7 @@ try {
  await client.query('BEGIN');
  await client.query(readFileSync('src/lib/video-jobs.sql','utf8'));
  await client.query(readFileSync('src/lib/billing.sql','utf8'));
+ await client.query(readFileSync('src/lib/video-prompts.sql','utf8'));
  await client.query('COMMIT');
  console.log('Applied additive migration to schema zombievideolab_pro only.');
  console.table((await client.query('SELECT code,resolution,amount_minor,currency,is_active FROM zombievideolab_pro.product_prices ORDER BY resolution')).rows);

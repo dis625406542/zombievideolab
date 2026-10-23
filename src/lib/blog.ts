@@ -23,7 +23,7 @@ export const MEME_GUIDE: BlogPost = {
 export const RECREATE_GUIDE: BlogPost = {
   slug: "how-to-recreate-tiptoeing-in-my-jordans-ai-video",
   title: "How do I recreate the viral Tiptoeing in My Jordans AI video with the same creepy, retro fantasy vibe and funny dance moves?",
-  description: "Recreate the creepy-funny dance with two photos, a ready-made reference and no login. A practical guide to the retro fantasy look, dancer roles, music and one-time pricing.",
+  description: "Recreate the creepy-funny dance with one or two photos, a ready-made reference and no login. A practical guide to the retro fantasy look, dancer roles, music and one-time pricing.",
   publishedAt: "2026-10-23T16:00:00+08:00",
   modifiedAt: "2026-10-23T16:00:00+08:00",
   readingMinutes: 7,

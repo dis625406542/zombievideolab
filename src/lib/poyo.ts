@@ -1,6 +1,6 @@
 import { type PromptScenario } from "./video-prompt";
 import { templatePrompt } from "./template-prompt";
-import { videoSpec, type PromptContext } from "./video-templates";
+import { requiredPhotoCount, DEFAULT_TEMPLATE, videoSpec, type PromptContext } from "./video-templates";
 
 // PoYo API contract: https://docs.poyo.ai/api-manual/video-series/seedance-2.5
 export type Resolution = "480p" | "720p";
@@ -21,7 +21,7 @@ export function makeSeedanceInput(urls: string[], resolution: Resolution, aspect
   const spec = videoSpec(context);
   if (spec.referenceVideo && !referenceVideo) throw new Error("The dance reference video is required.");
   if (resolution !== "480p" && resolution !== "720p") throw new Error("Unsupported resolution.");
-  if (urls.length !== 2) throw new Error("Two portraits are required.");
+  if (urls.length !== requiredPhotoCount(context?.templateId ?? DEFAULT_TEMPLATE, context?.sceneId)) throw new Error("Upload the required portraits for this scene.");
   if (aspectRatio !== "9:16" && aspectRatio !== "16:9") throw new Error("Unsupported aspect ratio.");
   return { prompt: templatePrompt(scenario, aspectRatio, true, context), reference_image_urls: urls.map(httpsUrl), ...(spec.referenceVideo ? { reference_video_urls: [httpsUrl(referenceVideo)] } : {}), duration: spec.durationSeconds, resolution, aspect_ratio: aspectRatio, generate_audio: spec.generateAudio };
 }

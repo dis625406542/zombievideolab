@@ -1,6 +1,6 @@
 import { type PromptScenario } from "./video-prompt";
 import { templatePrompt } from "./template-prompt";
-import { videoSpec, type PromptContext } from "./video-templates";
+import { requiredPhotoCount, DEFAULT_TEMPLATE, videoSpec, type PromptContext } from "./video-templates";
 import { isIP } from "node:net";
 import type { Resolution, AspectRatio } from "./poyo";
 
@@ -53,7 +53,7 @@ export function makeYirRequest(ids: string[], resolution: Resolution, aspectRati
   if (spec.referenceVideo && !referenceVideo) throw new Error("The dance reference video is required.");
   // YIR subject grouping only supports all-image references, not mixed video inputs.
   const subjects = !spec.referenceVideo && process.env.YIR_REFERENCE_SUBJECTS === "true";
-  if (ids.length !== 2 || (resolution !== "480p" && resolution !== "720p")) throw new Error("Two photos and a supported resolution are required.");
+  if (ids.length !== requiredPhotoCount(context?.templateId ?? DEFAULT_TEMPLATE, context?.sceneId) || (resolution !== "480p" && resolution !== "720p")) throw new Error("The selected scene needs the matching photos and a supported resolution.");
   if (aspectRatio !== "9:16" && aspectRatio !== "16:9") throw new Error("Unsupported aspect ratio.");
   return {
     model: process.env.YIR_MODEL_ID?.trim() || "bytedance/seedance-2.0",

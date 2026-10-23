@@ -1,6 +1,6 @@
 import { localMockPayments } from "@/lib/local-mock-payments";
 import { enabled as generationEnabled } from "@/lib/video-access";
-import { DEFAULT_TEMPLATE, parseTemplate } from "@/lib/video-templates";
+import { DEFAULT_TEMPLATE, parseTemplate, parseScene, requiredPhotoCount } from "@/lib/video-templates";
 import { NextResponse } from "next/server";
 import { sameOrigin } from "@/lib/video-access";
 import { visitorFrom } from "@/lib/video-visitor";
@@ -33,15 +33,20 @@ export async function POST(request:Request) {
   let order=await orderFor(visitor,code);
   if(order && (order.provider==="local_mock")!==mockPayment) return json({error:"This order uses a different payment mode. Create a new video code."},409);
   if(order && order.template_id!==templateId) return json({error:"This order belongs to a different video template."},409);
-  if(!order || order.status==="pending" && order.input_photos.length!==2) {
+  const sceneId=parseScene(templateId,form.get("scene") ?? order?.scene_id);
+  if(!sceneId) return json({error:"Unknown video scene."},400);
+  if(order && order.scene_id!==sceneId) return json({error:"This order keeps its original scene. Create a new video code to change modes."},409);
+  const photoCount=requiredPhotoCount(templateId,sceneId);
+  if(!order || order.status==="pending" && order.input_photos.length!==photoCount) {
    const resolution=form.get("resolution"),aspect=form.get("aspectRatio");
    if(!["480p","720p"].includes(String(resolution)) || !["9:16","16:9"].includes(String(aspect)) || form.get("consent")!=="yes") return json({error:"Confirm your photo permissions and choose a video format."},400);
-   const files=[form.get("zombie"),form.get("survivor")];
-   validatePhotos(files);await Promise.all(files.map(validatePhotoBytes));
+   if(photoCount===1 && form.has("survivor")) return json({error:"Upload only the dancer photo in Dancer only mode."},400);
+   const files=photoCount===1?[form.get("zombie")]:[form.get("zombie"),form.get("survivor")];
+   validatePhotos(files,photoCount);await Promise.all(files.map(validatePhotoBytes));
    const assessments=await moderatePortraits(files);
    const scenario=templateId===DEFAULT_TEMPLATE?selectPromptScenario(assessments):"gender_neutral";
    if(order && (order.resolution!==resolution || order.aspect_ratio!==aspect)) return json({error:"This order keeps its original format. Use a new video code to change formats."},409);
-   const created=order?{order,created:true}:await createOrder(visitor,code,resolution as "480p"|"720p",aspect as "9:16"|"16:9",templateId,mockPayment?request:undefined);
+   const created=order?{order,created:true}:await createOrder(visitor,code,resolution as "480p"|"720p",aspect as "9:16"|"16:9",templateId,mockPayment?request:undefined,sceneId);
    order=created.created?await saveOrderPhotos(created.order,files,scenario):created.order;
   }
   if(mockPayment) {

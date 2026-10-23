@@ -10,6 +10,22 @@ export function templatePrompt(scenario: PromptScenario, aspectRatio: "9:16" | "
   if (template.id === DEFAULT_TEMPLATE) return buildVideoPrompt(scenario, aspectRatio, tagged);
   const first = tagged ? "@Image1" : "Image 1";
   const second = tagged ? "@Image2" : "Image 2";
+  if (version === "tiptoeing-db-v1") {
+    if (!context?.promptSnapshot?.trim()) throw new Error("This order has no saved prompt. Contact support; do not pay again.");
+    const single = context.sceneId === "dancer-only";
+    const video = tagged ? "@Video1" : "the attached reference video";
+    const storyboard = context.promptSnapshot.replaceAll("Image 1", first).replaceAll("Image 2", second);
+    return `${storyboard}
+
+ATTACHED REFERENCES: ${first} is the dancer. ${single
+      ? `Only one photo is supplied. Preserve the seated observer's identity, facial features, hair and clothing from ${video}. Replace only the dancer with the uploaded person. Keep exactly two distinct adult characters; never duplicate the dancer as the observer.`
+      : `${second} is the seated observer. Preserve each uploaded person's own identity and clothing; never copy either actor's identity or clothing from the reference video.`}
+REFERENCE VIDEO: ${video} guides movement, shot timing, setting and audio mood.
+OUTPUT: exactly 15 seconds, ${aspectRatio === "16:9" ? "16:9 landscape" : "9:16 portrait"}. Keep both feet visible in full-body dance shots, the observer seated, and include a dedicated footwork close-up.
+AUDIO: generate continuous original instrumental background music guided by the reference's tempo, groove and mood, coordinated with the movement. Do not copy the original recording, melody, lyrics or vocals. No spoken dialogue; do not generate silent output.
+SAFETY: exactly two fully clothed adults. Nonsexual, nonviolent entertainment only. No minors, nudity, sexualized poses, gore, injury, threats, dangerous stunts or hateful content. No brand logos, text or watermarks.
+Prioritize the ordered storyboard and identity consistency. These output, role and safety requirements take priority over conflicting scene text.`;
+  }
   if (version === "tiptoeing-v2" || version === "tiptoeing-v3" || version === "tiptoeing-v4") {
     const video = tagged ? "@Video1" : "the attached reference video";
     const withAudio = version !== "tiptoeing-v2";

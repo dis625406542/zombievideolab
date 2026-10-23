@@ -1,8 +1,8 @@
-export function validatePhotos(files:unknown[]): asserts files is File[] {
- if(files.length!==2) throw new Error("Upload two photos.");
+export function validatePhotos(files:unknown[], expectedCount:1|2=2): asserts files is File[] {
+ if(files.length!==expectedCount) throw new Error(`Upload ${expectedCount === 1 ? "one photo" : "two photos"}.`);
  for(const file of files) {
   if(!(file instanceof File) || !["image/jpeg","image/png","image/webp"].includes(file.type) || file.size<1 || file.size>1800000)
-   throw new Error("Use two JPG, PNG or WebP photos, each optimized below 1.8 MB.");
+   throw new Error("Upload JPG, PNG or WebP photos, each optimized below 1.8 MB.");
  }
 }
 export async function validatePhotoBytes(file:File) {

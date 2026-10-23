@@ -6,7 +6,7 @@ import { readInputPhotos, deleteInputPhotos } from "./r2";
 import { moderatePortraits, ImageModerationError } from "./image-moderation";
 import { configured, submitForProvider } from "./video-provider";
 import { selectPromptScenario, type PromptScenario } from "./video-prompt";
-import { DEFAULT_TEMPLATE } from "./video-templates";
+import { DEFAULT_TEMPLATE, requiredPhotoCount } from "./video-templates";
 import { enabled } from "./video-access";
 
 // Database row locks are the authority; neither a redirect nor a client flag grants generation.
@@ -21,7 +21,7 @@ export async function startPaidOrder(id:string, retry=false) {
     if(order.provider==="local_mock" && !localMockRuntimeEnabled()) throw new Error("Simulated purchases are available only in local development.");
     const eligible=order.generation_status==="ready" || retry && order.generation_status==="failed";
     if(!eligible) { await db.query("COMMIT"); return; }
-    if(order.attempts>=3 || new Date(order.input_expires_at).getTime()<=Date.now() || order.input_photos.length!==2)
+    if(order.attempts>=3 || new Date(order.input_expires_at).getTime()<=Date.now() || order.input_photos.length!==requiredPhotoCount(order.template_id,order.scene_id))
       throw new Error("This purchase needs support assistance. Do not pay again; contact us with your video code.");
     if(!configured(order.video_provider)) throw new Error("The original video provider is unavailable. Your paid order is saved.");
     // Cross-instance cost ceiling. Retry attempts count too; a deploy cannot reset this counter.
@@ -42,7 +42,7 @@ export async function startPaidOrder(id:string, retry=false) {
     const files=await readInputPhotos(order.input_photos);
     const assessments=await moderatePortraits(files); // Fail closed; upload-time approval is not trusted.
     const scenario=order.template_id === DEFAULT_TEMPLATE ? (order.prompt_scenario ?? selectPromptScenario(assessments)) : "gender_neutral";
-    const task=await submitForProvider(order.video_provider,files,order.resolution,`${order.code}-${order.attempts}`,order.aspect_ratio,scenario,{templateId:order.template_id,promptVersion:order.prompt_version},async()=>{
+    const task=await submitForProvider(order.video_provider,files,order.resolution,`${order.code}-${order.attempts}`,order.aspect_ratio,scenario,{templateId:order.template_id,promptVersion:order.prompt_version,sceneId:order.scene_id,promptSnapshot:order.prompt_snapshot},async()=>{
       // Uploads and YIR quote are preparation. Only the final chargeable submit is ambiguous on timeout.
       const gate=await pool().query(`UPDATE zombievideolab_pro.billing_orders SET generation_status='submitting',prompt_scenario=COALESCE(prompt_scenario,$3),updated_at=now()
         WHERE id=$1 AND status='paid' AND generation_status='preparing' AND attempts=$2 RETURNING id`,[id,order.attempts,scenario]);

@@ -282,3 +282,28 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
 .guide-callout>a{display:inline-flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid #75757f;padding-block:8px;font-size:14px}
 @media(max-width:700px){.guide-callout{flex-direction:column;align-items:flex-start;padding:22px}.nav-links>a.public-blog-link{display:inline-flex;margin-right:14px}.nav-content:has(.public-blog-link) .nav-action{padding:10px;font-size:11px;gap:5px}}
 @media(max-width:340px){.nav-content:has(.public-blog-link) .nav-action{display:none}.nav-links>a.public-blog-link{margin-right:0}}
+
+/* Tiptoeing cast selector: native radios keep keyboard and screen-reader support. */
+.scene-picker { border: 0; padding: 0; margin: 20px 0; min-width: 0; }
+.scene-picker legend { font-size: 13px; color: #e5e5e5; margin-bottom: 10px; font-weight: 600; }
+.scene-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.scene-options label { display: flex; align-items: flex-start; gap: 9px; padding: 14px 12px; border: 1px solid #3c3c40; border-radius: 12px; background: #202023; cursor: pointer; min-width: 0; }
+.scene-options label.selected { border-color: #b7b7c2; background: #303034; }
+.scene-options input { margin: 3px 0 0; accent-color: #dddde6; flex-shrink: 0; }
+.scene-options strong { display: block; color: #f4f4f5; font-size: 13px; }
+.scene-options small { display: block; color: #b1b1bb; font-size: 11px; line-height: 1.55; margin-top: 5px; }
+.scene-options label:focus-within { outline: 2px solid #c6c6d2; outline-offset: 3px; }
+.scene-picker:disabled { opacity: .65; }
+.scene-picker:disabled label { cursor: not-allowed; }
+.reference-observer-card { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 20px 14px; text-align: center; border: 1px dashed #45454b; border-radius: 15px; background: #1c1c20; min-width: 0; }
+.reference-observer-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: #d8d8df; background: #303035; }
+.reference-observer-card strong { color: #ebebef; font-size: 13px; }
+.reference-observer-card p { margin: 0; color: #b9b9c2; font-size: 12px; line-height: 1.6; }
+.reference-observer-card small { color: #a4a4af; font-size: 11px; line-height: 1.5; }
+@media (max-width: 400px) { .scene-options { grid-template-columns: 1fr; } .reference-observer-card { padding: 16px 10px; } }
+
+@media (max-width: 600px) {
+  .tiptoe-page .upload-grid.single-cast { grid-template-columns: minmax(0, 1fr); }
+  .single-cast .reference-observer-card { gap: 6px; padding: 16px; }
+  .single-cast .reference-observer-icon { display: none; }
+}

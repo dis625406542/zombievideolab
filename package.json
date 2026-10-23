@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "db:migrate:prompts": "node scripts/migrate-video-prompts.mjs",
     "db:migrate": "node scripts/migrate-billing.mjs",
     "stripe:configure": "node scripts/configure-stripe-products.mjs"
   },

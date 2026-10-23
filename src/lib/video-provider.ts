@@ -6,7 +6,7 @@ import type { PromptScenario } from "./video-prompt";
 
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
-import { videoSpec, type PromptContext } from "./video-templates";
+import { requiredPhotoCount, DEFAULT_TEMPLATE, videoSpec, type PromptContext } from "./video-templates";
 
 export type ProviderName = "poyo" | "yir";
 export function selectedProvider(): ProviderName {
@@ -21,6 +21,7 @@ export function configured(provider: ProviderName) {
 }
 export async function submitForProvider(provider: ProviderName, files: File[], resolution: Resolution, code: string, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral", context?: PromptContext, beforeSubmit?: () => Promise<void>): Promise<string> {
   const spec = videoSpec(context);
+  if (files.length !== requiredPhotoCount(context?.templateId ?? DEFAULT_TEMPLATE, context?.sceneId)) throw new Error("Upload the required portraits for this scene.");
   const upload = provider === "poyo" ? poyoUpload : uploadYirPortrait;
   const urls = [];
   for (const file of files) urls.push(await upload(file));

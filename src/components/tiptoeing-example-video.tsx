@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 const previews = {
   reference: {
@@ -17,28 +17,52 @@ const previews = {
   },
 } as const;
 
-/** The original reference is always the initial preview, not a private order or the older result. */
+type PreviewId = keyof typeof previews;
+const playlist: readonly PreviewId[] = ["reference", "result"];
+const previewNames: Record<PreviewId, string> = { reference: "Reference", result: "Real result" };
+
+/** Public samples cycle in order; private order playback is managed separately. */
 export function TiptoeingExampleVideo() {
-  const [selected, setSelected] = useState<keyof typeof previews>("reference");
+  const [selected, setSelected] = useState<PreviewId>("reference");
+  const [restart, setRestart] = useState(0);
   const [failed, setFailed] = useState(false);
+  const [muted, setMuted] = useState(true);
+  const volume = useRef(1);
+  const attachVideo = useCallback((video: HTMLVideoElement | null) => {
+    if (video) video.volume = volume.current;
+  }, []);
   const preview = previews[selected];
+  const selectedIndex = playlist.indexOf(selected);
+
+  function playPreview(id: PreviewId) {
+    setSelected(id);
+    // Remount even when reselecting the active sample: always restart at zero.
+    setRestart(value => value + 1);
+    setFailed(false);
+  }
+
   return <div className="demo-player tiptoe-reference">
     <div className="demo-format-strip tiptoe-preview-toolbar">
       <div className="tiptoe-preview-switch" role="group" aria-label="Choose a public video preview">
-        <button type="button" aria-pressed={selected === "reference"} onClick={() => { setSelected("reference"); setFailed(false); }}>Reference</button>
-        <button type="button" aria-pressed={selected === "result"} onClick={() => { setSelected("result"); setFailed(false); }}>Real result</button>
+        {playlist.map(id => <button key={id} type="button" aria-pressed={selected === id}
+          onClick={() => playPreview(id)}>{previewNames[id]}</button>)}
       </div>
       <div className="demo-format-tags" aria-label="Preview video format">{preview.tags.map(tag => <span key={tag}>{tag}</span>)}</div>
     </div>
     <div className="demo-media">
       {failed ? <div className="tiptoe-reference-fallback" role="status">
         <img src={preview.poster} alt={`Still from ${preview.label}`}/>
-        <span>Preview playback is unavailable. Try switching previews or refresh the page.</span>
-      </div> : <video key={selected} src={preview.src} poster={preview.poster}
-        width={preview.width} height={preview.height} controls autoPlay muted loop playsInline preload="metadata"
+        <span>Preview playback is unavailable. Select a preview to try again.</span>
+      </div> : <video key={`${selected}-${restart}`} ref={attachVideo} src={preview.src} poster={preview.poster}
+        width={preview.width} height={preview.height} controls autoPlay muted={muted} playsInline preload="metadata"
         aria-label={preview.label} onError={() => setFailed(true)}
+        onVolumeChange={event => {
+          volume.current = event.currentTarget.volume;
+          setMuted(event.currentTarget.muted);
+        }}
+        onEnded={() => playPreview(playlist[(selectedIndex + 1) % playlist.length])}
       >Your browser does not support video playback.</video>}
     </div>
-    <p className="tiptoe-reference-note" aria-live="polite">{preview.note}</p>
+    <p className="tiptoe-reference-note">{preview.note}</p>
   </div>;
 }

@@ -23,9 +23,10 @@ import { selectedProvider, type Resolution, type AspectRatio, type ProviderName 
 
 import type { PromptScenario } from "./video-prompt";
 
-import { DEFAULT_TEMPLATE, videoSpec, videoTemplate, type TemplateId } from "./video-templates";
+import { loadPromptSnapshot } from "./prompt-catalog";
+import { requiredPhotoCount, type SceneId, DEFAULT_TEMPLATE, videoSpec, videoTemplate, type TemplateId } from "./video-templates";
 
-export type Order = { template_id:TemplateId; prompt_version:string; id:string; code:string; visitor_hash:string; product_name:string; amount_minor:number; currency:string;
+export type Order = { template_id:TemplateId; prompt_version:string; scene_id:SceneId; prompt_snapshot:string|null; id:string; code:string; visitor_hash:string; product_name:string; amount_minor:number; currency:string;
 
  resolution:Resolution; aspect_ratio:AspectRatio; video_provider:ProviderName; provider:string; environment:"test"|"live";
 
@@ -49,7 +50,7 @@ export async function orderById(id:string) {
 
 export function publicOrder(order:Order) {
 
-  return {code:order.code,templateId:order.template_id,durationSeconds:videoSpec({templateId:order.template_id,promptVersion:order.prompt_version}).durationSeconds,status:order.status,generationStatus:order.generation_status,resolution:order.resolution,aspectRatio:order.aspect_ratio,
+  return {code:order.code,sceneId:order.scene_id,templateId:order.template_id,durationSeconds:videoSpec({templateId:order.template_id,promptVersion:order.prompt_version}).durationSeconds,status:order.status,generationStatus:order.generation_status,resolution:order.resolution,aspectRatio:order.aspect_ratio,
 
     amountMinor:order.amount_minor,currency:order.currency,attempts:order.attempts,error:order.error,createdAt:order.created_at.toISOString(),
 
@@ -63,8 +64,9 @@ export async function ordersFor(visitor:string,templateId:TemplateId=DEFAULT_TEM
 
 }
 
-export async function createOrder(visitor:string,code:string,resolution:Resolution,aspect:AspectRatio,templateId:TemplateId=DEFAULT_TEMPLATE,mockRequest?:Request) {
+export async function createOrder(visitor:string,code:string,resolution:Resolution,aspect:AspectRatio,templateId:TemplateId=DEFAULT_TEMPLATE,mockRequest?:Request,sceneId:SceneId="two-person") {
 
+  requiredPhotoCount(templateId,sceneId);
   const mockPayment=!!mockRequest && localMockPayments(mockRequest,templateId);
   const db=await pool().connect();
 
@@ -78,7 +80,7 @@ export async function createOrder(visitor:string,code:string,resolution:Resoluti
 
     if(previous) {
 
-      if(previous.visitor_hash!==visitor || previous.template_id!==templateId || previous.resolution!==resolution || previous.aspect_ratio!==aspect || (previous.provider==="local_mock")!==mockPayment) throw new Error("This video code is unavailable. Generate a new code.");
+      if(previous.visitor_hash!==visitor || previous.template_id!==templateId || previous.scene_id!==sceneId || previous.resolution!==resolution || previous.aspect_ratio!==aspect || (previous.provider==="local_mock")!==mockPayment) throw new Error("This video code is unavailable. Generate a new code.");
 
       await db.query("COMMIT"); return {order:previous,created:false};
 
@@ -102,13 +104,16 @@ export async function createOrder(visitor:string,code:string,resolution:Resoluti
 
     const id=randomId();
 
+    const prompt = templateId === DEFAULT_TEMPLATE
+      ? {promptVersion:videoTemplate(templateId).promptVersion,promptSnapshot:null}
+      : await loadPromptSnapshot(db,templateId,sceneId);
     const result=await db.query<Order>(`INSERT INTO zombievideolab_pro.billing_orders
 
-      (id,code,visitor_hash,product_id,price_id,product_name,amount_minor,currency,resolution,aspect_ratio,video_provider,environment,stripe_product_id,stripe_price_id,template_id,prompt_version,provider,input_expires_at)
+      (id,code,visitor_hash,product_id,price_id,product_name,amount_minor,currency,resolution,aspect_ratio,video_provider,environment,stripe_product_id,stripe_price_id,template_id,prompt_version,provider,scene_id,prompt_snapshot,input_expires_at)
 
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,now()+interval '3 days') RETURNING *`,
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,now()+interval '3 days') RETURNING *`,
 
-      [id,code,visitor,price.product_id,price.id,price.name,price.amount_minor,price.currency,resolution,aspect,selectedProvider(),environment,mapping?.stripe_product_id ?? null,mapping?.stripe_price_id ?? null,templateId,videoTemplate(templateId).promptVersion,mockPayment?"local_mock":"stripe"]);
+      [id,code,visitor,price.product_id,price.id,price.name,price.amount_minor,price.currency,resolution,aspect,selectedProvider(),environment,mapping?.stripe_product_id ?? null,mapping?.stripe_price_id ?? null,templateId,prompt.promptVersion,mockPayment?"local_mock":"stripe",sceneId,prompt.promptSnapshot]);
 
     await db.query(`INSERT INTO zombievideolab_pro.billing_checkouts(id,order_id,environment,provider,expires_at) VALUES($1,$2,$3,$4,now()+interval '1 hour')`,[randomId(),id,environment,mockPayment?"local_mock":"stripe"]);
 
@@ -128,7 +133,7 @@ export async function completeLocalMockPayment(request:Request,order:Order) {
       SET status='paid',generation_status=CASE WHEN status='pending' THEN 'ready' ELSE generation_status END,
           provider_payment_id=COALESCE(provider_payment_id,$2),paid_at=COALESCE(paid_at,now()),updated_at=now()
       WHERE id=$1 AND provider='local_mock' AND environment='test' AND status IN ('pending','paid')
-        AND jsonb_array_length(input_photos)=2 AND input_expires_at>now() RETURNING *`,[order.id,`local_mock_${order.id}`])).rows[0];
+        AND jsonb_array_length(input_photos)=CASE WHEN template_id='tiptoeing-in-my-jordans' AND scene_id='dancer-only' THEN 1 ELSE 2 END AND input_expires_at>now() RETURNING *`,[order.id,`local_mock_${order.id}`])).rows[0];
     if(!updated) throw new Error("This order cannot complete simulated checkout. Create a new video code.");
     await db.query("UPDATE zombievideolab_pro.billing_checkouts SET status='complete',updated_at=now() WHERE order_id=$1 AND provider='local_mock'",[order.id]);
     await db.query("COMMIT");
@@ -138,6 +143,7 @@ export async function completeLocalMockPayment(request:Request,order:Order) {
 
 export async function saveOrderPhotos(order:Order,files:File[],scenario:PromptScenario) {
 
+  if(files.length!==requiredPhotoCount(order.template_id,order.scene_id)) throw new Error("Upload the required photos for this scene.");
   const photos:InputPhoto[]=[];
 
   try {
@@ -158,7 +164,7 @@ export async function checkoutFor(order:Order,origin:string) {
 
   if(order.environment!==stripeEnvironment()) throw new Error("Payment environment changed. Contact support with your code.");
 
-  if(order.input_photos.length!==2) throw new Error("Photos are still being saved. Please try again shortly or create a new video code.");
+  if(order.input_photos.length!==requiredPhotoCount(order.template_id,order.scene_id)) throw new Error("Photos are still being saved. Please try again shortly or create a new video code.");
 
   const row=(await pool().query<{provider_checkout_id:string|null;checkout_url:string|null;status:string;expires_at:Date}>("SELECT * FROM zombievideolab_pro.billing_checkouts WHERE order_id=$1",[order.id])).rows[0];
 

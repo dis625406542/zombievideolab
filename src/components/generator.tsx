@@ -1,6 +1,6 @@
 "use client";
 
-import { DEFAULT_TEMPLATE, videoTemplate, type TemplateId } from "@/lib/video-templates";
+import { DEFAULT_TEMPLATE, videoTemplate, type SceneId, type TemplateId } from "@/lib/video-templates";
 import { useEffect, useRef, useState } from "react";
 import { DemoVideo } from "@/components/demo-video";
 import { TiptoeingExampleVideo } from "@/components/tiptoeing-example-video";
@@ -13,7 +13,7 @@ type Review = { status: "idle" | "checking" | "approved" | "rejected"; error?: s
 type State = "idle" | "working" | "ready" | "failed";
 type Status = { status: string; progress: number; videoUrl?: string; error?: string; resolution?: string; aspectRatio?: string; durationSeconds?: number };
 type Price = { resolution: "480p" | "720p"; amount_minor: number; currency: string; name: string; purchasable: boolean };
-type Purchase = { code: string; status: string; generationStatus: string; resolution: string; aspectRatio: string; amountMinor: number; currency: string; canRetry: boolean; error?: string };
+type Purchase = { sceneId?: SceneId; code: string; status: string; generationStatus: string; resolution: string; aspectRatio: string; amountMinor: number; currency: string; canRetry: boolean; error?: string };
 const money = (amount: number, currency = "USD") => new Intl.NumberFormat("en-US", {style:"currency",currency}).format(amount / 100);
 type HistoryJob = Status & { code: string; resolution: string; aspectRatio: string; durationSeconds: number; createdAt: string };
 const MAX_SIZE = 10 * 1024 * 1024;
@@ -83,6 +83,9 @@ async function optimizePhoto(file: File, source: string): Promise<File> {
 
 export function Generator({ templateId = DEFAULT_TEMPLATE, initialPrices = [] }: { templateId?: TemplateId; initialPrices?: Price[] }) {
   const template = videoTemplate(templateId);
+  const [sceneId, setSceneId] = useState<SceneId>(templateId === "tiptoeing-in-my-jordans" ? "dancer-only" : "two-person");
+  const dancerOnly = templateId === "tiptoeing-in-my-jordans" && sceneId === "dancer-only";
+  const activeRoles: Role[] = dancerOnly ? ["zombie"] : ["zombie", "survivor"];
   const suffix = templateId === DEFAULT_TEMPLATE ? "" : `:${templateId}`;
   const SAVED_TASK = `zvl-last-video-task${suffix}`;
   const SAVED_CODES = `zvl-video-codes${suffix}`;
@@ -363,9 +366,9 @@ export function Generator({ templateId = DEFAULT_TEMPLATE, initialPrices = [] }:
 
   function openCheckout() {
     if (!available || !selectedPrice?.purchasable) { setMessage("Secure checkout is not available yet. No payment has been taken."); return; }
-    if (!zombie || !survivor) { setMessage("Add both adult portraits first."); return; }
-    if (!consent) { setMessage("Confirm you have permission to use both photos first."); return; }
-    if (reviews.zombie.status !== "approved" || reviews.survivor.status !== "approved") { setMessage("Wait until both photos pass the AI safety check. Replace any rejected photo before generating."); return; }
+    if (!zombie || (!dancerOnly && !survivor)) { setMessage(dancerOnly ? "Add the adult dancer portrait first." : "Add both adult portraits first."); return; }
+    if (!consent) { setMessage("Confirm you have permission to use the uploaded photos first."); return; }
+    if (activeRoles.some(role => reviews[role].status !== "approved")) { setMessage("Wait until your uploaded photos pass the AI safety check. Replace any rejected photo before generating."); return; }
     if (submitting.current) return;
     if (!/^[A-F0-9]{32}$/.test(videoCode)) { setMessage("Wait for your video code to be ready."); return; }
     setMessage(""); setCheckoutStep("price");
@@ -373,13 +376,15 @@ export function Generator({ templateId = DEFAULT_TEMPLATE, initialPrices = [] }:
 
   async function beginCheckout(existingCode?: string) {
     if (submitting.current) return;
-    if (!existingCode && (!zombie || !survivor || !selectedPrice?.purchasable || !consent || reviews.zombie.status !== "approved" || reviews.survivor.status !== "approved")) return;
+    if (!existingCode && (!zombie || (!dancerOnly && !survivor) || !selectedPrice?.purchasable || !consent || activeRoles.some(role => reviews[role].status !== "approved"))) return;
     submitting.current = true; setBusy(true);
     setMessage(mockPayment ? "Preparing local simulated payment. Your photos are still checked…" : "Preparing secure checkout. Your photos are checked before payment…");
     try {
       const form = new FormData(); form.append("code", existingCode ?? videoCode); form.append("template", templateId);
-      if (!existingCode && zombie && survivor) {
-        form.append("zombie", zombie.file); form.append("survivor", survivor.file);
+      if (!existingCode && zombie) {
+        form.append("scene", sceneId);
+        form.append("zombie", zombie.file);
+        if (!dancerOnly && survivor) form.append("survivor", survivor.file);
         form.append("resolution", resolution); form.append("aspectRatio", aspectRatio); form.append("consent", "yes");
       }
       const response = await fetch("/api/billing/checkout", {method:"POST",body:form});
@@ -409,18 +414,30 @@ export function Generator({ templateId = DEFAULT_TEMPLATE, initialPrices = [] }:
           <span className="template-duration-value">{template.durationSeconds}<span>s</span></span>
           <div><strong>{template.durationSeconds}-second AI video</strong><p>Fixed duration for both 480p and 720p. Choose your quality below.</p></div>
         </div>}
+        {templateId === "tiptoeing-in-my-jordans" && <fieldset className="scene-picker" disabled={busy || stage === "working" || checkoutStep !== "closed"}>
+          <legend>Choose your cast</legend>
+          <div className="scene-options">{([
+            {id: "dancer-only", title: "Dancer only", detail: "1 photo · Keep the reference observer"},
+            {id: "two-person", title: "Two people", detail: "2 photos · Choose both characters"},
+          ] as const).map(mode => <label key={mode.id} className={sceneId === mode.id ? "selected" : ""}>
+            <input type="radio" name="scene" value={mode.id} checked={sceneId === mode.id} onChange={() => {
+              setSceneId(mode.id); setConsent(false); regenerateCode();
+              setMessage(mode.id === "dancer-only" ? "Upload only the dancer. The reference video supplies the seated observer." : "Upload the dancer first and the seated observer second.");
+            }}/><span><strong>{mode.title}</strong><small>{mode.detail}</small></span>
+          </label>)}</div>
+        </fieldset>}
         <div className="tool-label"><span>YOUR CHARACTERS</span><span>JPG, PNG OR WEBP · MAX 10 MB EACH</span></div>
-        <div className="upload-grid"><UploadTile label={template.roles[0]} description={template.roleDescriptions?.[0]} role="zombie" photo={zombie} review={reviews.zombie} onFile={selectPhoto} onRemove={removePhoto}/><UploadTile label={template.roles[1]} description={template.roleDescriptions?.[1]} role="survivor" photo={survivor} review={reviews.survivor} onFile={selectPhoto} onRemove={removePhoto}/></div>
-        <p className="upload-hint"><strong>{template.instructions}</strong> Each photo is sent for AI safety screening as soon as you select it; replace any photo that fails before generating. The server checks both again before sending approved photos to the video provider. Use consenting adult portraits only; AI cannot verify age or consent with certainty.</p>
-        {(reviews.zombie.status !== "idle" || reviews.survivor.status !== "idle") && <div className="review-summary" role="status" aria-live="polite">{(["zombie", "survivor"] as const).map((role, index) => <p key={role}><strong>Photo {index + 1}:</strong> {reviews[role].status === "checking" ? "Checking with AI…" : reviews[role].status === "approved" ? "Passed AI safety check" : reviews[role].status === "rejected" ? reviews[role].error : "Not selected"}</p>)}</div>}
+        <div className={`upload-grid${dancerOnly ? " single-cast" : ""}`}><UploadTile label={template.roles[0]} description={template.roleDescriptions?.[0]} role="zombie" photo={zombie} review={reviews.zombie} onFile={selectPhoto} onRemove={removePhoto}/>{dancerOnly ? <div className="reference-observer-card"><span className="reference-observer-icon" aria-hidden="true"><Play size={24}/></span><strong>Observer from the reference</strong><p>No second photo needed. We ask the AI to preserve the seated observer’s appearance and clothing from the reference video.</p><small>Two characters still appear. AI recreation may vary.</small></div> : <UploadTile label={template.roles[1]} description={template.roleDescriptions?.[1]} role="survivor" photo={survivor} review={reviews.survivor} onFile={selectPhoto} onRemove={removePhoto}/>}</div>
+        <p className="upload-hint"><strong>{dancerOnly ? "Photo 1: dancer. Only the dancer is replaced; the seated observer comes from the reference video." : template.instructions}</strong> Each photo is sent for AI safety screening as soon as you select it; replace any photo that fails before generating. The server checks uploaded photos again before sending approved photos to the video provider. Use consenting adult portraits only; AI cannot verify age or consent with certainty.</p>
+        {(reviews.zombie.status !== "idle" || reviews.survivor.status !== "idle") && <div className="review-summary" role="status" aria-live="polite">{activeRoles.map((role, index) => <p key={role}><strong>Photo {index + 1}:</strong> {reviews[role].status === "checking" ? "Checking with AI…" : reviews[role].status === "approved" ? "Passed AI safety check" : reviews[role].status === "rejected" ? reviews[role].error : "Not selected"}</p>)}</div>}
         <fieldset className="resolution-field"><legend>Video quality{templateId === "tiptoeing-in-my-jordans" ? ` · ${template.durationSeconds}s video` : ""}</legend><div className="resolution-options">{(["480p", "720p"] as const).map(value => <label key={value} className={resolution === value ? "selected" : ""}><input type="radio" name="resolution" value={value} checked={resolution === value} onChange={() => setResolution(value)} disabled={busy || !prices.some(price => price.resolution === value && price.purchasable)}/>{value}{templateId === "tiptoeing-in-my-jordans" ? ` · ${template.durationSeconds}s` : ""} {prices.find(price => price.resolution === value) ? money(prices.find(price => price.resolution === value)!.amount_minor) : ""}</label>)}</div><small>{template.durationSeconds} seconds · One video per purchase · No subscription.</small></fieldset>
         <fieldset className="resolution-field"><legend>Video format</legend><div className="resolution-options format-options">{(["9:16", "16:9"] as const).map(value => <label key={value} className={aspectRatio === value ? "selected" : ""}>
           <input type="radio" name="aspectRatio" value={value} aria-label={value === "9:16" ? "9:16 portrait video" : "16:9 landscape video"} checked={aspectRatio === value} onChange={() => setAspectRatio(value)} disabled={busy}/>
           <svg className="format-icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><rect x={value === "9:16" ? 9 : 2} y={value === "9:16" ? 2 : 9} width={value === "9:16" ? 18 : 32} height={value === "9:16" ? 32 : 18} rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
           <span className="format-ratio">{value}</span>
         </label>)}</div></fieldset>
-        <label className="consent-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)}/><span className="custom-check" aria-hidden="true"><Check size={12}/></span><span>I am at least 18; both people are adults who consented to this fictional AI video. I have rights to upload these photos to the provider, and my submission follows the Acceptable Use Policy.</span></label>
-        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={busy || stage === "working" || loadingPhoto || reviews.zombie.status === "checking" || reviews.survivor.status === "checking" || !available || !selectedPrice?.purchasable}>{stage === "working" ? "Generating your video…" : busy ? "Opening checkout…" : billingLoading ? "Checking checkout…" : billingFailed ? "Checkout check failed" : available ? (templateId === "tiptoeing-in-my-jordans" ? `Generate ${template.durationSeconds}s AI video` : "Generate AI video") : "Checkout unavailable"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> {selectedPrice ? `${money(selectedPrice.amount_minor, selectedPrice.currency)} · One-time payment · No subscription` : billingLoading ? "Loading prices…" : "Prices could not be loaded. Please retry."}</p></div>
+        <label className="consent-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)}/><span className="custom-check" aria-hidden="true"><Check size={12}/></span><span>{dancerOnly ? "I am at least 18. The uploaded dancer is an adult who consented to this fictional AI video. I have rights to upload this photo to the provider, and my submission follows the Acceptable Use Policy." : "I am at least 18; both people are adults who consented to this fictional AI video. I have rights to upload these photos to the provider, and my submission follows the Acceptable Use Policy."}</span></label>
+        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={busy || stage === "working" || loadingPhoto || activeRoles.some(role => reviews[role].status === "checking") || !available || !selectedPrice?.purchasable}>{stage === "working" ? "Generating your video…" : busy ? "Opening checkout…" : billingLoading ? "Checking checkout…" : billingFailed ? "Checkout check failed" : available ? (templateId === "tiptoeing-in-my-jordans" ? `Generate ${template.durationSeconds}s AI video` : "Generate AI video") : "Checkout unavailable"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> {selectedPrice ? `${money(selectedPrice.amount_minor, selectedPrice.currency)} · One-time payment · No subscription` : billingLoading ? "Loading prices…" : "Prices could not be loaded. Please retry."}</p></div>
         {billingFailed && <p className="price-note" role="status">We could not verify checkout. <button type="button" className="billing-retry" onClick={() => { setBillingLoading(true); setBillingFailed(false); void refreshBilling().catch(() => setMessage("Checkout could not be verified. Please try again later; do not pay twice.")); }}>Retry checkout check</button></p>}
         {templateId === "tiptoeing-in-my-jordans" && <p className="price-note">15-second MP4 · AI-created background music requested · Download within 3 days.</p>}
         {!billingLoading && !billingFailed && !available && prices.length > 0 && <p className="history-help">Checkout for this template is not available yet. No payment can be taken.</p>}
@@ -433,7 +450,7 @@ export function Generator({ templateId = DEFAULT_TEMPLATE, initialPrices = [] }:
           <button type="button" className="checkout-close" onClick={() => setCheckoutStep("closed")} aria-label="Close checkout"><X size={19}/></button>
           <span className="checkout-eyebrow">ZOMBIE VIDEO LAB · {mockPayment ? "LOCAL TEST CHECKOUT" : "SECURE CHECKOUT"}</span>
           <h2 id="checkout-title">{template.title}</h2>
-          <p>{template.purchase} {mockPayment ? "Local test: simulate payment, then generate a real video. No card is required; generation consumes real provider credits." : "Pay once with Stripe; no subscription or credits. Generation begins only after the server verifies payment."}</p>
+          <p>{dancerOnly ? "One 15-second video using your approved dancer photo and the observer from our reference video." : template.purchase} {mockPayment ? "Local test: simulate payment, then generate a real video. No card is required; generation consumes real provider credits." : "Pay once with Stripe; no subscription or credits. Generation begins only after the server verifies payment."}</p>
           <div className="checkout-summary"><span><strong className="checkout-duration">{template.durationSeconds}-second video</strong><br/>{resolution} · {aspectRatio} · One-time purchase</span><strong>{selectedPrice ? money(selectedPrice.amount_minor, selectedPrice.currency) : "Unavailable"}</strong></div>
           <div className="checkout-code-label">Your video code</div>
           <div className="video-code-row"><output className="video-code-value" aria-label="Video code to keep">{videoCode}</output><button type="button" className="video-code-action" onClick={() => { void navigator.clipboard.writeText(videoCode).then(() => setCodeCopied(true)).catch(() => setMessage("Select the code to copy it.")); }}><Copy size={16}/> Copy</button><a className="video-code-action" href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Zombie Video Lab video code: ${videoCode}\nKeep this browser cookie; this code alone does not grant access on other devices.\n`)}`} download={`zombie-video-code-${videoCode}.txt`} aria-label="Download video code as a text file"><Download size={16}/> Save code</a><button type="button" className="video-code-action" onClick={regenerateCode} aria-label="Generate another video code"><RefreshCw size={16}/> New</button></div>
