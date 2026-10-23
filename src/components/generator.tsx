@@ -1,7 +1,9 @@
 "use client";
 
+import { DEFAULT_TEMPLATE, videoTemplate, type TemplateId } from "@/lib/video-templates";
 import { useEffect, useRef, useState } from "react";
 import { DemoVideo } from "@/components/demo-video";
+import { TiptoeingReferenceVideo } from "@/components/tiptoeing-reference-video";
 import { GeneratedVideo } from "@/components/generated-video";
 import { ArrowRight, Check, Copy, Download, ImagePlus, LockKeyhole, Play, RefreshCw, ShieldCheck, X } from "lucide-react";
 
@@ -9,29 +11,28 @@ type Role = "zombie" | "survivor";
 type Photo = { file: File; url: string };
 type Review = { status: "idle" | "checking" | "approved" | "rejected"; error?: string };
 type State = "idle" | "working" | "ready" | "failed";
-type Status = { status: string; progress: number; videoUrl?: string; error?: string };
-type Price = { resolution: "480p" | "720p"; amount_minor: number; currency: string; name: string };
+type Status = { status: string; progress: number; videoUrl?: string; error?: string; resolution?: string; aspectRatio?: string; durationSeconds?: number };
+type Price = { resolution: "480p" | "720p"; amount_minor: number; currency: string; name: string; purchasable: boolean };
 type Purchase = { code: string; status: string; generationStatus: string; resolution: string; aspectRatio: string; amountMinor: number; currency: string; canRetry: boolean; error?: string };
 const money = (amount: number, currency = "USD") => new Intl.NumberFormat("en-US", {style:"currency",currency}).format(amount / 100);
-type HistoryJob = Status & { code: string; resolution: string; createdAt: string };
+type HistoryJob = Status & { code: string; resolution: string; aspectRatio: string; durationSeconds: number; createdAt: string };
 const MAX_SIZE = 10 * 1024 * 1024;
 const ALLOWED = new Set(["image/jpeg", "image/png", "image/webp"]);
-const SAVED_TASK = "zvl-last-video-task";
-const SAVED_CODES = "zvl-video-codes";
-const SAVED_CODE = "zvl-last-video-code";
+
 function newVideoCode(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-function UploadTile({ role, photo, review, onFile, onRemove }: {
+function UploadTile({ role, label, photo, review, onFile, onRemove }: {
   role: Role;
+  label: string;
   photo: Photo | null;
   review: Review;
   onFile: (role: Role, file: File) => void;
   onRemove: (role: Role) => void;
 }) {
-  const name = role === "zombie" ? "The infected" : "The rescuer";
+  const name = label;
   const number = role === "zombie" ? "01" : "02";
   return (
     <div className={`upload-tile ${photo ? "has-photo" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const file = event.dataTransfer.files?.[0]; if (file) onFile(role, file); }}>
@@ -77,7 +78,12 @@ async function optimizePhoto(file: File, source: string): Promise<File> {
   throw new Error("This photo is too large after optimization. Please choose a smaller image.");
 }
 
-export function Generator() {
+export function Generator({ templateId = DEFAULT_TEMPLATE }: { templateId?: TemplateId }) {
+  const template = videoTemplate(templateId);
+  const suffix = templateId === DEFAULT_TEMPLATE ? "" : `:${templateId}`;
+  const SAVED_TASK = `zvl-last-video-task${suffix}`;
+  const SAVED_CODES = `zvl-video-codes${suffix}`;
+  const SAVED_CODE = `zvl-last-video-code${suffix}`;
   const [zombie, setZombie] = useState<Photo | null>(null);
   const [survivor, setSurvivor] = useState<Photo | null>(null);
   const [consent, setConsent] = useState(false);
@@ -89,10 +95,12 @@ export function Generator() {
   const [stage, setStage] = useState<State>("idle");
   const [message, setMessage] = useState("");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [playingFormat, setPlayingFormat] = useState<{ resolution: string; aspectRatio: string; durationSeconds: number } | null>(null);
   const [available, setAvailable] = useState(false);
   const [prices, setPrices] = useState<Price[]>([]);
   const [orders, setOrders] = useState<Purchase[]>([]);
   const [testMode, setTestMode] = useState(false);
+  const [mockPayment, setMockPayment] = useState(false);
   const [busy, setBusy] = useState(false);
   const bootstrap = useRef<Promise<unknown> | null>(null);
   const selectedPrice = prices.find(price => price.resolution === resolution);
@@ -112,7 +120,7 @@ export function Generator() {
 
   async function refreshHistory() {
     try {
-      const response = await fetch("/api/video", { cache: "no-store" });
+      const response = await fetch(`/api/video?template=${templateId}`, { cache: "no-store" });
       const data = await response.json() as { enabled?: boolean; jobs?: HistoryJob[]; error?: string };
       if (!response.ok) throw new Error(data.error || "History is unavailable.");
 
@@ -130,7 +138,7 @@ export function Generator() {
   }
 
   async function refreshBilling(code?: string): Promise<Purchase[]> {
-    const response = await fetch(`/api/billing${code ? `?code=${encodeURIComponent(code)}` : ""}`, {cache:"no-store"});
+    const response = await fetch(`/api/billing?template=${templateId}${code ? `&code=${encodeURIComponent(code)}` : ""}`, {cache:"no-store"});
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Payment information is unavailable. Do not pay again.");
     if (data.order) {
@@ -139,8 +147,11 @@ export function Generator() {
       return [data.order];
     }
     syncState.current.orders = data.orders ?? [];
-    setPrices(data.prices ?? []); setOrders(syncState.current.orders);
-    setAvailable(data.enabled === true); setTestMode(data.testMode === true);
+    const nextPrices: Price[] = data.prices ?? [];
+    setPrices(nextPrices); setOrders(syncState.current.orders);
+    setResolution(current => nextPrices.some(price => price.resolution === current && price.purchasable)
+      ? current : nextPrices.find(price => price.purchasable)?.resolution ?? current);
+    setAvailable(data.enabled === true); setTestMode(data.testMode === true); setMockPayment(data.mockPayment === true);
     return data.orders ?? [];
   }
   async function continueOrder(order: Purchase, retry = false) {
@@ -150,7 +161,7 @@ export function Generator() {
     setStage("working"); setVisualProgress(3);
     setMessage(retry ? "Retrying your paid order. No new payment is required." : "Payment verified. Preparing your video…");
     try {
-      const response = await fetch("/api/video", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:order.code,retry})});
+      const response = await fetch("/api/video", {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code:order.code,retry,template:templateId})});
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Your purchase is saved. Please check again; do not pay again.");
       sessionStorage.setItem(SAVED_CODE, order.code);
@@ -175,17 +186,19 @@ export function Generator() {
           sessionStorage.setItem(SAVED_CODE, returnedCode);
           if (order.status === "paid" && order.generationStatus === "ready") void continueOrder(order);
           else if (order.status === "pending") setMessage(params.get("checkout") === "cancel" ? "Checkout was cancelled. Resume your existing order below; do not create a duplicate purchase." : "Checking your payment with Stripe. Please wait; do not pay again.");
-          window.history.replaceState(null, "", "/#generator");
+          window.history.replaceState(null, "", `${template.path}#generator`);
         }
         const jobs = await refreshHistory();
         if (!alive || submitting.current) return;
         const saved = sessionStorage.getItem(SAVED_CODE);
         const selected = jobs.find(job => job.code === saved) ?? jobs[0];
         if (selected) {
-          setSelectedCode(selected.code);
-          if (selected.status === "finished" && selected.videoUrl) { setVideoUrl(selected.videoUrl); setStage("ready"); }
+          // Tiptoeing opens on its public sample, not a private historical result.
+          if (selected.status === "finished" && selected.videoUrl && templateId === DEFAULT_TEMPLATE) {
+            setSelectedCode(selected.code); setPlayingFormat(selected); setVideoUrl(selected.videoUrl); setStage("ready");
+          }
           if (["running","submitting"].includes(selected.status)) {
-            handleRef.current = selected.code; setStage("working"); void checkTask(selected.code);
+            setSelectedCode(selected.code); handleRef.current = selected.code; setStage("working"); void checkTask(selected.code);
           }
         }
       } catch (error) { if (alive) setMessage(error instanceof Error ? error.message : "Could not load your orders."); }
@@ -223,7 +236,7 @@ export function Generator() {
         const updatedJobs = await refreshHistory();
         for (const job of updatedJobs.filter(item => ["running", "submitting"].includes(item.status)).slice(0, 3)) {
           if (disposed || document.visibilityState !== "visible") return;
-          if (job.code !== handleRef.current) await fetch(`/api/video?code=${encodeURIComponent(job.code)}`, {cache:"no-store"});
+          if (job.code !== handleRef.current) await fetch(`/api/video?template=${templateId}&code=${encodeURIComponent(job.code)}`, {cache:"no-store"});
         }
       } catch { /* Preserve history and retry on active work or tab return. Never infer payment from a redirect. */ }
       finally { running = false; }
@@ -256,11 +269,13 @@ export function Generator() {
       return;
     }
     try {
-      const response = await fetch(`/api/video?code=${encodeURIComponent(code)}`, { cache: "no-store" });
+      const response = await fetch(`/api/video?template=${templateId}&code=${encodeURIComponent(code)}`, { cache: "no-store" });
       const data = await response.json() as Status & { error?: string };
       if (handleRef.current !== code) return;
       if (!response.ok) throw new Error(data.error || "Could not check the video task.");
       if (data.status === "finished" && data.videoUrl) {
+        setSelectedCode(code);
+        setPlayingFormat({ resolution: data.resolution ?? resolution, aspectRatio: data.aspectRatio ?? aspectRatio, durationSeconds: data.durationSeconds ?? template.durationSeconds });
         setVideoUrl(data.videoUrl); setStage("ready"); setProgress(100); setVisualProgress(100);
         setMessage("Your video is ready. Find it in this browser after refresh, and download it within three days.");
         void refreshHistory();
@@ -333,7 +348,7 @@ export function Generator() {
   }
 
   function openCheckout() {
-    if (!available) { setMessage("Secure checkout is not available yet. No payment has been taken."); return; }
+    if (!available || !selectedPrice?.purchasable) { setMessage("Secure checkout is not available yet. No payment has been taken."); return; }
     if (!zombie || !survivor) { setMessage("Add both adult portraits first."); return; }
     if (!consent) { setMessage("Confirm you have permission to use both photos first."); return; }
     if (reviews.zombie.status !== "approved" || reviews.survivor.status !== "approved") { setMessage("Wait until both photos pass the AI safety check. Replace any rejected photo before generating."); return; }
@@ -344,18 +359,26 @@ export function Generator() {
 
   async function beginCheckout(existingCode?: string) {
     if (submitting.current) return;
-    if (!existingCode && (!zombie || !survivor || !selectedPrice || !consent || reviews.zombie.status !== "approved" || reviews.survivor.status !== "approved")) return;
+    if (!existingCode && (!zombie || !survivor || !selectedPrice?.purchasable || !consent || reviews.zombie.status !== "approved" || reviews.survivor.status !== "approved")) return;
     submitting.current = true; setBusy(true);
-    setMessage("Preparing secure checkout. Your photos are checked before payment…");
+    setMessage(mockPayment ? "Preparing local simulated payment. Your photos are still checked…" : "Preparing secure checkout. Your photos are checked before payment…");
     try {
-      const form = new FormData(); form.append("code", existingCode ?? videoCode);
+      const form = new FormData(); form.append("code", existingCode ?? videoCode); form.append("template", templateId);
       if (!existingCode && zombie && survivor) {
         form.append("zombie", zombie.file); form.append("survivor", survivor.file);
         form.append("resolution", resolution); form.append("aspectRatio", aspectRatio); form.append("consent", "yes");
       }
       const response = await fetch("/api/billing/checkout", {method:"POST",body:form});
       const data = await response.json();
-      if (!response.ok || !data.checkoutUrl) throw new Error(data.error || "Could not open secure checkout.");
+      if (!response.ok) throw new Error(data.error || "Could not open secure checkout.");
+      if (mockPayment && data.mockPayment === true && data.order?.status === "paid") {
+        sessionStorage.setItem(SAVED_CODE, data.code);
+        setCheckoutStep("closed");
+        submitting.current = false;
+        await continueOrder(data.order);
+        return;
+      }
+      if (!data.checkoutUrl) throw new Error("Checkout did not return a valid payment result.");
       sessionStorage.setItem(SAVED_CODE, data.code);
       window.location.assign(data.checkoutUrl);
     } catch (error) {
@@ -365,21 +388,26 @@ export function Generator() {
   }
 
   return (
-    <div id="generator" tabIndex={-1} className="generator" aria-label="Zombie couple video generator">
+    <div id="generator" tabIndex={-1} className="generator" aria-label={template.title}>
       <div className="form-panel">
-        <div className="panel-heading"><div><span className="panel-overline"><span className="live-dot"/> THE STORY BEGINS HERE</span><h2>Make your moment <em>unforgettable.</em></h2><p>Two adult portraits. One fictional zombie love video. No account needed.</p></div><span className="panel-index">01—02</span></div>
+        <div className="panel-heading"><div><span className="panel-overline"><span className="live-dot"/> {template.overline}</span><h2>{template.heading} <em>{template.emphasis}</em></h2><p>{template.intro}</p></div><span className="panel-index">01—02</span></div>
+        {templateId === "tiptoeing-in-my-jordans" && <div className="template-duration-card" aria-label="Video duration: 15 seconds">
+          <span className="template-duration-value">{template.durationSeconds}<span>s</span></span>
+          <div><strong>{template.durationSeconds}-second AI video</strong><p>Fixed duration for both 480p and 720p. Choose your quality below.</p></div>
+        </div>}
         <div className="tool-label"><span>YOUR CHARACTERS</span><span>JPG, PNG OR WEBP · MAX 10 MB EACH</span></div>
-        <div className="upload-grid"><UploadTile role="zombie" photo={zombie} review={reviews.zombie} onFile={selectPhoto} onRemove={removePhoto}/><UploadTile role="survivor" photo={survivor} review={reviews.survivor} onFile={selectPhoto} onRemove={removePhoto}/></div>
-        <p className="upload-hint"><strong>Photo 1: infected person. Photo 2: rescuer.</strong> Upload in that order; we automatically adapt the story to your photos. Each photo is sent for AI safety screening as soon as you select it; replace any photo that fails before generating. The server checks both again before sending approved photos to the video provider. Use consenting adult portraits only; AI cannot verify age or consent with certainty.</p>
+        <div className="upload-grid"><UploadTile label={template.roles[0]} role="zombie" photo={zombie} review={reviews.zombie} onFile={selectPhoto} onRemove={removePhoto}/><UploadTile label={template.roles[1]} role="survivor" photo={survivor} review={reviews.survivor} onFile={selectPhoto} onRemove={removePhoto}/></div>
+        <p className="upload-hint"><strong>{template.instructions}</strong> Each photo is sent for AI safety screening as soon as you select it; replace any photo that fails before generating. The server checks both again before sending approved photos to the video provider. Use consenting adult portraits only; AI cannot verify age or consent with certainty.</p>
         {(reviews.zombie.status !== "idle" || reviews.survivor.status !== "idle") && <div className="review-summary" role="status" aria-live="polite">{(["zombie", "survivor"] as const).map((role, index) => <p key={role}><strong>Photo {index + 1}:</strong> {reviews[role].status === "checking" ? "Checking with AI…" : reviews[role].status === "approved" ? "Passed AI safety check" : reviews[role].status === "rejected" ? reviews[role].error : "Not selected"}</p>)}</div>}
-        <fieldset className="resolution-field"><legend>Video quality</legend><div className="resolution-options">{(["480p", "720p"] as const).map(value => <label key={value} className={resolution === value ? "selected" : ""}><input type="radio" name="resolution" value={value} checked={resolution === value} onChange={() => setResolution(value)} disabled={busy || !prices.some(price => price.resolution === value)}/>{value} {prices.find(price => price.resolution === value) ? money(prices.find(price => price.resolution === value)!.amount_minor) : ""}</label>)}</div><small>8 seconds · One video per purchase · No subscription.</small></fieldset>
+        <fieldset className="resolution-field"><legend>Video quality{templateId === "tiptoeing-in-my-jordans" ? ` · ${template.durationSeconds}s video` : ""}</legend><div className="resolution-options">{(["480p", "720p"] as const).map(value => <label key={value} className={resolution === value ? "selected" : ""}><input type="radio" name="resolution" value={value} checked={resolution === value} onChange={() => setResolution(value)} disabled={busy || !prices.some(price => price.resolution === value && price.purchasable)}/>{value}{templateId === "tiptoeing-in-my-jordans" ? ` · ${template.durationSeconds}s` : ""} {prices.find(price => price.resolution === value) ? money(prices.find(price => price.resolution === value)!.amount_minor) : ""}</label>)}</div><small>{template.durationSeconds} seconds · One video per purchase · No subscription.</small></fieldset>
         <fieldset className="resolution-field"><legend>Video format</legend><div className="resolution-options format-options">{(["9:16", "16:9"] as const).map(value => <label key={value} className={aspectRatio === value ? "selected" : ""}>
           <input type="radio" name="aspectRatio" value={value} aria-label={value === "9:16" ? "9:16 portrait video" : "16:9 landscape video"} checked={aspectRatio === value} onChange={() => setAspectRatio(value)} disabled={busy}/>
           <svg className="format-icon" width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" focusable="false"><rect x={value === "9:16" ? 9 : 2} y={value === "9:16" ? 2 : 9} width={value === "9:16" ? 18 : 32} height={value === "9:16" ? 32 : 18} rx="2" fill="none" stroke="currentColor" strokeWidth="1.5"/></svg>
           <span className="format-ratio">{value}</span>
         </label>)}</div></fieldset>
         <label className="consent-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)}/><span className="custom-check" aria-hidden="true"><Check size={12}/></span><span>I am at least 18; both people are adults who consented to this fictional AI video. I have rights to upload these photos to the provider, and my submission follows the Acceptable Use Policy.</span></label>
-        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={busy || stage === "working" || loadingPhoto || reviews.zombie.status === "checking" || reviews.survivor.status === "checking" || !available}>{stage === "working" ? "Generating your video…" : busy ? "Opening checkout…" : available ? "Generate AI video" : "Checkout unavailable"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> {selectedPrice ? `${money(selectedPrice.amount_minor, selectedPrice.currency)} · One-time payment · No subscription` : "Loading current prices…"}</p></div>
+        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={busy || stage === "working" || loadingPhoto || reviews.zombie.status === "checking" || reviews.survivor.status === "checking" || !available || !selectedPrice?.purchasable}>{stage === "working" ? "Generating your video…" : busy ? "Opening checkout…" : available ? (templateId === "tiptoeing-in-my-jordans" ? `Generate ${template.durationSeconds}s AI video` : "Generate AI video") : "Checkout unavailable"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> {selectedPrice ? `${money(selectedPrice.amount_minor, selectedPrice.currency)} · One-time payment · No subscription` : "Prices are temporarily unavailable"}</p></div>
+        {!available && prices.length > 0 && <p className="history-help">Checkout for this template is not available yet. No payment can be taken.</p>}
         <p className="form-message" role="status" aria-live="polite">{message}</p>
         <p className="tool-legal">Selecting a photo sends a resized copy to our AI safety service. Optimized photos are temporarily stored privately for checkout and paid retries, then sent to the video provider only after payment verification and another safety check. When your video is ready, you can return to this browser to play or download it for up to three days after generation. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/acceptable-use">Prohibited content</a></p>
         <div className="form-footer"><span><ShieldCheck size={16}/> Use only authorized adult photos</span><span>VIDEO GENERATION <span aria-hidden="true">↗</span></span></div>
@@ -387,28 +415,39 @@ export function Generator() {
       {checkoutStep !== "closed" && <div className="checkout-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setCheckoutStep("closed"); }}>
         <div className="checkout-dialog" role="dialog" aria-modal="true" aria-labelledby="checkout-title" onKeyDown={event => { if (event.key === "Escape") setCheckoutStep("closed"); }}>
           <button type="button" className="checkout-close" onClick={() => setCheckoutStep("closed")} aria-label="Close checkout"><X size={19}/></button>
-          <span className="checkout-eyebrow">ZOMBIE VIDEO LAB · SECURE CHECKOUT</span>
-          <h2 id="checkout-title">Your story, one video.</h2>
-          <p>One 8-second zombie love story using your two approved portraits. Pay once with Stripe; no subscription or credits. Generation begins only after the server verifies payment.</p>
-          <div className="checkout-summary"><span>One-time video · {resolution} · {aspectRatio} · 8s</span><strong>{selectedPrice ? money(selectedPrice.amount_minor, selectedPrice.currency) : "Unavailable"}</strong></div>
+          <span className="checkout-eyebrow">ZOMBIE VIDEO LAB · {mockPayment ? "LOCAL TEST CHECKOUT" : "SECURE CHECKOUT"}</span>
+          <h2 id="checkout-title">{template.title}</h2>
+          <p>{template.purchase} {mockPayment ? "Local test: simulate payment, then generate a real video. No card is required; generation consumes real provider credits." : "Pay once with Stripe; no subscription or credits. Generation begins only after the server verifies payment."}</p>
+          <div className="checkout-summary"><span><strong className="checkout-duration">{template.durationSeconds}-second video</strong><br/>{resolution} · {aspectRatio} · One-time purchase</span><strong>{selectedPrice ? money(selectedPrice.amount_minor, selectedPrice.currency) : "Unavailable"}</strong></div>
           <div className="checkout-code-label">Your video code</div>
           <div className="video-code-row"><output className="video-code-value" aria-label="Video code to keep">{videoCode}</output><button type="button" className="video-code-action" onClick={() => { void navigator.clipboard.writeText(videoCode).then(() => setCodeCopied(true)).catch(() => setMessage("Select the code to copy it.")); }}><Copy size={16}/> Copy</button><a className="video-code-action" href={`data:text/plain;charset=utf-8,${encodeURIComponent(`Zombie Video Lab video code: ${videoCode}\nKeep this browser cookie; this code alone does not grant access on other devices.\n`)}`} download={`zombie-video-code-${videoCode}.txt`} aria-label="Download video code as a text file"><Download size={16}/> Save code</a><button type="button" className="video-code-action" onClick={regenerateCode} aria-label="Generate another video code"><RefreshCw size={16}/> New</button></div>
           {codeCopied && <span className="code-copied" role="status">Code copied</span>}
           <p className="checkout-retention">Your video will remain available in this browser after a refresh for up to 3 days after it is ready. <strong>Download it within 3 days.</strong> Keep this browser’s cookies; clearing them or switching devices may remove access. Your video code alone cannot recover the video on another device.</p>
-          <p className="checkout-disclaimer">{testMode ? "Stripe TEST mode: use a Stripe test card. No real money is collected." : "One-time payment. If generation fails definitively, retry this paid order without paying again; contact support if assistance is needed."} By continuing, you agree to our <a href="/terms">Terms</a> and <a href="/refund-policy">Refund Policy</a>.</p>
-          <button type="button" className="checkout-primary" disabled={busy || !selectedPrice} onClick={() => void beginCheckout()}>{busy ? "Opening secure checkout…" : `Pay ${selectedPrice ? money(selectedPrice.amount_minor, selectedPrice.currency) : ""} with Stripe`} <ArrowRight size={18}/></button>
+          <p className="checkout-disclaimer">{mockPayment ? "LOCAL TEST: no Stripe charge. Real AI generation costs still apply; the selected resolution and 15-second duration are sent to the provider." : testMode ? "Stripe TEST mode: use a Stripe test card. No real money is collected." : "One-time payment. If generation fails definitively, retry this paid order without paying again; contact support if assistance is needed."} By continuing, you agree to our <a href="/terms">Terms</a> and <a href="/refund-policy">Refund Policy</a>.</p>
+          <button type="button" className="checkout-primary" disabled={busy || !selectedPrice?.purchasable} onClick={() => void beginCheckout()}>{busy ? (mockPayment ? "Preparing your video…" : "Opening secure checkout…") : mockPayment ? "Simulate payment & generate" : `Pay ${selectedPrice ? money(selectedPrice.amount_minor, selectedPrice.currency) : ""} with Stripe`} <ArrowRight size={18}/></button>
           <button type="button" className="checkout-secondary" onClick={() => setCheckoutStep("closed")}>Not now</button>
         </div>
       </div>}
       <div className="preview-panel" ref={previewRef} aria-label="Video preview" aria-busy={stage === "working"}>
-        <div className="preview-header"><span>THE NIGHTFALL STORY <span className="preview-line">/</span> LOOK 01</span><span className="preview-diamond">✧</span></div>
-        <div className={`visual-window video-window${videoUrl ? "" : " demo-window"}`}>{videoUrl ? <GeneratedVideo src={videoUrl} controls playsInline preload="metadata" aria-label="Your generated zombie couple video"/> : <DemoVideo />}</div>
+        <div className="preview-header"><span>{template.previewHeading} <span className="preview-line">/</span> LOOK 01</span><span className="preview-diamond">✧</span></div>
+        <div className={`visual-window video-window${videoUrl ? " result-window" : " demo-window"}`}>
+          {videoUrl ? <>
+            <div className="demo-format-strip" aria-label={`Your video: ${playingFormat?.resolution ?? resolution}, ${playingFormat?.durationSeconds ?? template.durationSeconds} seconds, ${playingFormat?.aspectRatio ?? aspectRatio}`}>
+              <span className="demo-format-title"><span className="demo-status-dot"/> YOUR VIDEO</span>
+              <div className="demo-format-tags"><span>{playingFormat?.resolution ?? resolution}</span><span>{playingFormat?.durationSeconds ?? template.durationSeconds}s</span><span>{playingFormat?.aspectRatio ?? aspectRatio}</span></div>
+            </div>
+            <div className="result-media" style={{ aspectRatio: (playingFormat?.aspectRatio ?? aspectRatio).replace(":", "/") }}>
+              <GeneratedVideo key={videoUrl} src={videoUrl} controls autoPlay playsInline preload="metadata" aria-label={`Your generated ${template.title}`}/>
+            </div>
+          </> : templateId === "tiptoeing-in-my-jordans" ? <TiptoeingReferenceVideo /> : <DemoVideo />}
+        </div>
+        {videoUrl && <button type="button" className="back-to-sample" onClick={() => { setVideoUrl(null); setSelectedCode(null); setPlayingFormat(null); setStage("idle"); }}>Watch sample video <Play size={13}/></button>}
         {stage === "working" && <div className="generation-progress" role="progressbar" aria-label="Estimated video generation progress" aria-valuenow={Math.round(visualProgress)} aria-valuemin={0} aria-valuemax={100}>
           <div className="generation-progress-text"><span>CREATING YOUR STORY</span><strong>{Math.round(visualProgress)}% <small>estimated</small></strong></div>
           <div className="generation-track"><span style={{ width: `${visualProgress}%` }}/></div>
           <p>AI rendering may take several minutes. Actual provider progress: {progress}%. You may refresh or return to this browser later.</p>
         </div>}
-        <div className="preview-footer"><div><span className="preview-footer-icon"><Play size={15} fill="currentColor"/></span><div><strong>{stage === "ready" ? "Your AI video is ready" : stage === "working" ? "Generating your story" : "Preview your zombie love story"}</strong><span>{stage === "ready" ? "Watch and download within three days after generation" : stage === "working" ? "You can return to this tab to check progress" : "Your finished video will replace this sample preview"}</span></div></div>{videoUrl ? <a className="preview-download" href={selectedCode ? `/api/video/file?code=${encodeURIComponent(selectedCode)}&download=1` : videoUrl} download aria-label="Download generated video"><Download size={18}/></a> : <span className="preview-badge">PREVIEW</span>}</div>
+        <div className="preview-footer"><div><span className="preview-footer-icon"><Play size={15} fill="currentColor"/></span><div><strong>{stage === "ready" ? "Your AI video is ready" : stage === "working" ? "Generating your story" : template.previewTitle}</strong><span>{stage === "ready" ? "Watch and download within three days after generation" : stage === "working" ? "You can return to this tab to check progress" : "Watch the sample, or choose a finished video from your collection below"}</span></div></div>{videoUrl ? <a className="preview-download" href={selectedCode ? `/api/video/file?code=${encodeURIComponent(selectedCode)}&download=1` : videoUrl} download aria-label="Download generated video"><Download size={18}/></a> : <span className="preview-badge">PREVIEW</span>}</div>
         {videoUrl && <p className="export-help">Tap Download to save your video. If your mobile browser opens a preview, use its Save or Share menu. Your download is available in this browser for up to three days after generation; keep this browser cookie.</p>}
         <section className="video-history" aria-label="Your video history">
           <div className="history-heading"><div><span>YOUR PRIVATE COLLECTION</span><h3>Your videos</h3></div><button type="button" onClick={() => void refreshHistory()} aria-label="Refresh video history"><RefreshCw size={17}/></button></div>
@@ -419,6 +458,7 @@ export function Generator() {
                 if (poller.current) clearTimeout(poller.current);
                 handleRef.current = null;
                 setSelectedCode(job.code);
+                setPlayingFormat(job);
                 sessionStorage.setItem(SAVED_CODE, job.code);
                 setVideoUrl(job.videoUrl ?? null);
                 setProgress(100);

@@ -1,10 +1,12 @@
 import "server-only";
+import { localMockRuntimeEnabled } from "./local-mock-payments";
 import { pool } from "./db";
 import { orderById, type Order, randomId } from "./billing-orders";
 import { readInputPhotos, deleteInputPhotos } from "./r2";
 import { moderatePortraits, ImageModerationError } from "./image-moderation";
 import { configured, submitForProvider } from "./video-provider";
 import { selectPromptScenario, type PromptScenario } from "./video-prompt";
+import { DEFAULT_TEMPLATE } from "./video-templates";
 import { enabled } from "./video-access";
 
 // Database row locks are the authority; neither a redirect nor a client flag grants generation.
@@ -16,6 +18,7 @@ export async function startPaidOrder(id:string, retry=false) {
     await db.query("BEGIN");
     order=(await db.query<Order>("SELECT * FROM zombievideolab_pro.billing_orders WHERE id=$1 FOR UPDATE",[id])).rows[0];
     if(!order || order.status!=="paid") throw new Error("A verified payment is required.");
+    if(order.provider==="local_mock" && !localMockRuntimeEnabled()) throw new Error("Simulated purchases are available only in local development.");
     const eligible=order.generation_status==="ready" || retry && order.generation_status==="failed";
     if(!eligible) { await db.query("COMMIT"); return; }
     if(order.attempts>=3 || new Date(order.input_expires_at).getTime()<=Date.now() || order.input_photos.length!==2)
@@ -28,23 +31,25 @@ export async function startPaidOrder(id:string, retry=false) {
     if(count>=limit) throw new Error("Generation is queued because today's capacity is full. Your payment is saved; do not pay again.");
     order=(await db.query<Order>("UPDATE zombievideolab_pro.billing_orders SET generation_status='preparing',attempts=attempts+1,error=NULL,updated_at=now() WHERE id=$1 RETURNING *",[id])).rows[0];
     await db.query("INSERT INTO zombievideolab_pro.video_generation_attempts(id,order_id,attempt_number,status) VALUES($1,$2,$3,'preparing')",[randomId(),id,order.attempts]);
-    await db.query(`INSERT INTO zombievideolab_pro.video_jobs(code,visitor_hash,provider,status,resolution,aspect_ratio)
-      VALUES($1,$2,$3,'submitting',$4,$5) ON CONFLICT(code) DO UPDATE SET status='submitting',task_id=NULL,progress=0,
+    await db.query(`INSERT INTO zombievideolab_pro.video_jobs(code,visitor_hash,provider,status,resolution,aspect_ratio,template_id,prompt_version)
+      VALUES($1,$2,$3,'submitting',$4,$5,$6,$7) ON CONFLICT(code) DO UPDATE SET status='submitting',task_id=NULL,progress=0,
       video_url=NULL,completed_at=NULL,storage_attempts=0,storage_retry_at=NULL,storage_error=NULL,error=NULL,updated_at=now() WHERE video_jobs.visitor_hash=EXCLUDED.visitor_hash AND video_jobs.r2_key IS NULL`,
-      [order.code,order.visitor_hash,order.video_provider,order.resolution,order.aspect_ratio]);
+      [order.code,order.visitor_hash,order.video_provider,order.resolution,order.aspect_ratio,order.template_id,order.prompt_version]);
     await db.query("COMMIT");
   } catch(e) { await db.query("ROLLBACK"); throw e; } finally {db.release();}
   let submitted=false;
   try {
     const files=await readInputPhotos(order.input_photos);
     const assessments=await moderatePortraits(files); // Fail closed; upload-time approval is not trusted.
-    const scenario=order.prompt_scenario ?? selectPromptScenario(assessments);
-    const gate=await pool().query<{prompt_scenario:PromptScenario}>(`UPDATE zombievideolab_pro.billing_orders SET generation_status='submitting',prompt_scenario=COALESCE(prompt_scenario,$3),updated_at=now()
-      WHERE id=$1 AND status='paid' AND generation_status='preparing' AND attempts=$2 RETURNING prompt_scenario`,[id,order.attempts,scenario]);
-    if(!gate.rowCount) throw new Error("This order can no longer be generated. Contact support; do not pay again.");
-    await pool().query("UPDATE zombievideolab_pro.video_generation_attempts SET status='submitting',updated_at=now() WHERE order_id=$1 AND attempt_number=$2",[id,order.attempts]);
-    submitted=true; // Beyond this point a timeout is ambiguous, NOT permission for a free resubmission.
-    const task=await submitForProvider(order.video_provider,files,order.resolution,`${order.code}-${order.attempts}`,order.aspect_ratio,gate.rows[0].prompt_scenario);
+    const scenario=order.template_id === DEFAULT_TEMPLATE ? (order.prompt_scenario ?? selectPromptScenario(assessments)) : "gender_neutral";
+    const task=await submitForProvider(order.video_provider,files,order.resolution,`${order.code}-${order.attempts}`,order.aspect_ratio,scenario,{templateId:order.template_id,promptVersion:order.prompt_version},async()=>{
+      // Uploads and YIR quote are preparation. Only the final chargeable submit is ambiguous on timeout.
+      const gate=await pool().query(`UPDATE zombievideolab_pro.billing_orders SET generation_status='submitting',prompt_scenario=COALESCE(prompt_scenario,$3),updated_at=now()
+        WHERE id=$1 AND status='paid' AND generation_status='preparing' AND attempts=$2 RETURNING id`,[id,order.attempts,scenario]);
+      if(!gate.rowCount) throw new Error("This order can no longer be generated. Contact support; do not pay again.");
+      await pool().query("UPDATE zombievideolab_pro.video_generation_attempts SET status='submitting',updated_at=now() WHERE order_id=$1 AND attempt_number=$2",[id,order.attempts]);
+      submitted=true; // A subsequent submit timeout is NOT permission for a free resubmission.
+    });
     const tx=await pool().connect();
     try {
       await tx.query("BEGIN");

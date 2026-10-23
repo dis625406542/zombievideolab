@@ -2,7 +2,9 @@ import "server-only";
 import { pool } from "./db";
 import type { ProviderName, Resolution, AspectRatio } from "./video-provider";
 
-export type VideoJob = {
+import { DEFAULT_TEMPLATE, videoSpec, type TemplateId } from "./video-templates";
+
+export type VideoJob = { template_id: TemplateId; prompt_version: string;
   code: string; provider: ProviderName; task_id: string | null;
   status: "submitting" | "running" | "finished" | "failed" | "unknown";
   resolution: Resolution; aspect_ratio: AspectRatio; progress: number; video_url: string | null;
@@ -29,14 +31,14 @@ export async function saveStoredVideo(visitor: string, code: string, key: string
   await pool().query("UPDATE zombievideolab_pro.video_jobs SET status='finished', progress=100, r2_key=$3, stored_at=now(), completed_at=COALESCE(completed_at,now()), storage_error=NULL, storage_retry_at=NULL, error=NULL, updated_at=now() WHERE code=$1 AND visitor_hash=$2 AND r2_key IS NULL", [code, visitor, key]);
 }
 export async function findJob(visitor: string, code: string): Promise<VideoJob | null> {
-  const result = await pool().query<VideoJob>("SELECT code,provider,task_id,status,resolution,aspect_ratio,progress,video_url,r2_key,stored_at,completed_at,storage_attempts,storage_retry_at,storage_error,error,created_at FROM zombievideolab_pro.video_jobs WHERE visitor_hash=$1 AND code=$2", [visitor, code]);
+  const result = await pool().query<VideoJob>("SELECT template_id,prompt_version,code,provider,task_id,status,resolution,aspect_ratio,progress,video_url,r2_key,stored_at,completed_at,storage_attempts,storage_retry_at,storage_error,error,created_at FROM zombievideolab_pro.video_jobs WHERE visitor_hash=$1 AND code=$2", [visitor, code]);
   return result.rows[0] ?? null;
 }
-export async function listJobs(visitor: string): Promise<VideoJob[]> {
+export async function listJobs(visitor: string, templateId: TemplateId = DEFAULT_TEMPLATE): Promise<VideoJob[]> {
   // A process may exit after reserving a code, even after the provider accepted it.
   // Never relabel uncertain submission as a free retry.
   await pool().query("UPDATE zombievideolab_pro.video_jobs SET status='unknown', error='Submission was interrupted. Contact support with your video code before retrying.', updated_at=now() WHERE visitor_hash=$1 AND status='submitting' AND updated_at < now() - interval '15 minutes'", [visitor]);
-  const result = await pool().query<VideoJob>("SELECT code,provider,task_id,status,resolution,aspect_ratio,progress,video_url,r2_key,stored_at,completed_at,storage_attempts,storage_retry_at,storage_error,error,created_at FROM zombievideolab_pro.video_jobs WHERE visitor_hash=$1 ORDER BY created_at DESC, code DESC LIMIT 50", [visitor]);
+  const result = await pool().query<VideoJob>("SELECT template_id,prompt_version,code,provider,task_id,status,resolution,aspect_ratio,progress,video_url,r2_key,stored_at,completed_at,storage_attempts,storage_retry_at,storage_error,error,created_at FROM zombievideolab_pro.video_jobs WHERE visitor_hash=$1 AND template_id=$2 ORDER BY created_at DESC, code DESC LIMIT 50", [visitor, templateId]);
   return result.rows;
 }
 // A delayed copy must never extend the three-day download window.
@@ -46,7 +48,7 @@ export function videoAvailable(row: VideoJob) {
     Date.now() < new Date(completed).getTime() + 3 * 86400000;
 }
 export function publicJob(row: VideoJob) {
-  return { code: row.code, status: row.status, resolution: row.resolution, aspectRatio: row.aspect_ratio, progress: row.progress, videoUrl: videoAvailable(row) ? `/api/video/file?code=${row.code}` : null, error: row.error, createdAt: row.created_at.toISOString() };
+  return { code: row.code, templateId: row.template_id, status: row.status, resolution: row.resolution, durationSeconds: videoSpec({ templateId: row.template_id, promptVersion: row.prompt_version }).durationSeconds, aspectRatio: row.aspect_ratio, progress: row.progress, videoUrl: videoAvailable(row) ? `/api/video/file?code=${row.code}` : null, error: row.error, createdAt: row.created_at.toISOString() };
 }
 
 export async function claimStorageAttempt(visitor: string, code: string): Promise<boolean> {

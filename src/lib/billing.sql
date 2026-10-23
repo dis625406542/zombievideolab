@@ -9,10 +9,15 @@ CREATE TABLE IF NOT EXISTS zombievideolab_pro.products (
 CREATE TABLE IF NOT EXISTS zombievideolab_pro.product_prices (
  id text PRIMARY KEY, product_id text NOT NULL REFERENCES zombievideolab_pro.products(id), code text NOT NULL UNIQUE,
  resolution text NOT NULL CHECK (resolution IN ('480p','720p')), amount_minor integer NOT NULL CHECK (amount_minor>0 AND amount_minor<=100000),
- currency text NOT NULL DEFAULT 'USD' CHECK (currency='USD'), duration_seconds integer NOT NULL DEFAULT 8 CHECK(duration_seconds=8),
+ currency text NOT NULL DEFAULT 'USD' CHECK (currency='USD'), duration_seconds integer NOT NULL DEFAULT 8 CHECK(duration_seconds IN (8,15)),
  is_active boolean NOT NULL DEFAULT true, created_at timestamptz NOT NULL DEFAULT now(), updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE UNIQUE INDEX IF NOT EXISTS product_prices_active_resolution_idx ON zombievideolab_pro.product_prices(resolution) WHERE is_active;
+-- Expand the old 8-second-only constraint without changing paid-order snapshots.
+ALTER TABLE zombievideolab_pro.product_prices DROP CONSTRAINT IF EXISTS product_prices_duration_seconds_check;
+ALTER TABLE zombievideolab_pro.product_prices ADD CONSTRAINT product_prices_duration_seconds_check CHECK(duration_seconds IN (8,15));
+-- Resolution is unique within a product, not across different templates.
+CREATE UNIQUE INDEX IF NOT EXISTS product_prices_active_product_resolution_idx ON zombievideolab_pro.product_prices(product_id,resolution) WHERE is_active;
+DROP INDEX IF EXISTS zombievideolab_pro.product_prices_active_resolution_idx;
 CREATE TABLE IF NOT EXISTS zombievideolab_pro.billing_orders (
  id text PRIMARY KEY, code varchar(32) NOT NULL UNIQUE CHECK(code ~ '^[A-F0-9]{32}$'), visitor_hash varchar(64) NOT NULL,
  product_id text NOT NULL REFERENCES zombievideolab_pro.products(id), price_id text NOT NULL REFERENCES zombievideolab_pro.product_prices(id),
@@ -79,3 +84,27 @@ CREATE TABLE IF NOT EXISTS zombievideolab_pro.stripe_price_mappings (
 );
 ALTER TABLE zombievideolab_pro.billing_orders ADD COLUMN IF NOT EXISTS stripe_product_id text;
 ALTER TABLE zombievideolab_pro.billing_orders ADD COLUMN IF NOT EXISTS stripe_price_id text;
+
+-- Template and prompt snapshots: legacy orders/jobs remain zombie-couple.
+ALTER TABLE zombievideolab_pro.billing_orders ADD COLUMN IF NOT EXISTS template_id text NOT NULL DEFAULT 'zombie-couple';
+ALTER TABLE zombievideolab_pro.billing_orders ADD COLUMN IF NOT EXISTS prompt_version text NOT NULL DEFAULT 'zombie-v1';
+ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS template_id text NOT NULL DEFAULT 'zombie-couple';
+ALTER TABLE zombievideolab_pro.video_jobs ADD COLUMN IF NOT EXISTS prompt_version text NOT NULL DEFAULT 'zombie-v1';
+CREATE INDEX IF NOT EXISTS billing_orders_template_visitor_idx ON zombievideolab_pro.billing_orders(visitor_hash,template_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS video_jobs_template_visitor_idx ON zombievideolab_pro.video_jobs(visitor_hash,template_id,created_at DESC);
+INSERT INTO zombievideolab_pro.products(id,code,name,description,sort_order) VALUES
+ ('tiptoeing-in-my-jordans','tiptoeing-in-my-jordans','Tiptoeing In My Jordans AI Video','One 15-second, reference-guided tiptoeing dance with a seated observer from two approved adult photos.',10)
+ ON CONFLICT DO NOTHING;
+INSERT INTO zombievideolab_pro.product_prices(id,product_id,code,resolution,amount_minor,currency) VALUES
+ ('tiptoeing-480p','tiptoeing-in-my-jordans','tiptoeing-480p','480p',599,'USD'),
+ ('tiptoeing-720p','tiptoeing-in-my-jordans','tiptoeing-720p','720p',899,'USD')
+ ON CONFLICT DO NOTHING;
+-- Deliberately no Stripe mapping: operator must configure this product's own test/live IDs.
+
+-- Only Tiptoeing changes duration; preserve prices, currency, activation and Stripe mappings.
+UPDATE zombievideolab_pro.product_prices SET duration_seconds=15,updated_at=now()
+ WHERE product_id='tiptoeing-in-my-jordans' AND duration_seconds<>15;
+UPDATE zombievideolab_pro.products
+ SET description='One 15-second, reference-guided tiptoeing dance with a seated observer from two approved adult photos.',updated_at=now()
+ WHERE id='tiptoeing-in-my-jordans'
+ AND description='One playful, trend-inspired 8-second dance interaction from two approved adult photos.';

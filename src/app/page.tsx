@@ -76,6 +76,8 @@ export default function HomePage() {
 
         <section id="questions" className="faq-section wrapper"><div className="faq-side"><p className="eyebrow">A FEW GOOD QUESTIONS</p><h2>Everything you <em>need to know.</em></h2><p>Considering a zombie couple video? Here are the practical details about the tool, photo permissions, one-time payment, and what happens when a generation does not work.</p></div><div className="faq-list">{questions.map(({question,answer}) => <details key={question} className="faq-item"><summary>{question}<span className="faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}<GenerateCta label="Ready? Go to the generator" /></div></section>
 
+        <section className="bottom-cta wrapper" aria-labelledby="related-template-heading"><div><p className="eyebrow">EXPLORE ANOTHER TWO-PHOTO TEMPLATE</p><h2 id="related-template-heading">A new scene. <em>A playful little move.</em></h2><p>Try the Tiptoeing In My Jordans AI video generator: two portraits, a trend-inspired dance interaction, and the same simple one-time checkout.</p></div><a href="/video/tiptoeing-in-my-jordans" className="bottom-link">Try the tiptoeing template <ArrowRight size={19}/></a></section>
+
         <section className="bottom-cta wrapper"><div><p className="eyebrow">READY TO SEE THE IDEA?</p><h2>Every great story <em>starts with two.</em></h2><p>Explore the zombie couple video generator with two portraits. When secure checkout is configured, an approved, verified purchase can generate one 8-second video.</p></div><a href="#generator" className="bottom-link">Try the tool <ArrowRight size={19}/></a></section>
       </main>
 

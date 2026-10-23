@@ -4,6 +4,10 @@ import { getYirStatus, submitYirVideo, uploadYirPortrait } from "./yir";
 
 import type { PromptScenario } from "./video-prompt";
 
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { videoSpec, type PromptContext } from "./video-templates";
+
 export type ProviderName = "poyo" | "yir";
 export function selectedProvider(): ProviderName {
   const name = process.env.VIDEO_PROVIDER?.trim().toLowerCase() || "poyo";
@@ -11,16 +15,23 @@ export function selectedProvider(): ProviderName {
   return name;
 }
 export function configured(provider: ProviderName) {
-  const cap = process.env.YIR_MAX_COST_USD?.trim();
   return provider === "poyo"
     ? !!(process.env.poyo_seedance_token || process.env.POYO_API_KEY)
-    : !!(process.env.YIR_API_KEY && cap && /^(?:0|[1-9]\d{0,12})(?:\.\d{1,6})?$/.test(cap) && Number(cap) > 0 && process.env.VIDEO_HANDLE_SECRET?.length && process.env.VIDEO_HANDLE_SECRET.length >= 32);
+    : !!(process.env.YIR_API_KEY && process.env.VIDEO_HANDLE_SECRET?.length && process.env.VIDEO_HANDLE_SECRET.length >= 32);
 }
-export async function submitForProvider(provider: ProviderName, files: File[], resolution: Resolution, code: string, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral"): Promise<string> {
+export async function submitForProvider(provider: ProviderName, files: File[], resolution: Resolution, code: string, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral", context?: PromptContext, beforeSubmit?: () => Promise<void>): Promise<string> {
+  const spec = videoSpec(context);
   const upload = provider === "poyo" ? poyoUpload : uploadYirPortrait;
   const urls = [];
   for (const file of files) urls.push(await upload(file));
-  return provider === "poyo" ? poyoSubmit(urls, resolution, aspectRatio, scenario) : submitYirVideo(urls, resolution, `zvl-${code}`, aspectRatio, scenario);
+  let referenceVideo: string | undefined;
+  if (spec.referenceVideo) {
+    // Server-owned asset only: never fetch a reference URL supplied by a browser.
+    const bytes = await readFile(join(process.cwd(), "public", "tiptoeing-reference.mp4"));
+    referenceVideo = await upload(new File([new Uint8Array(bytes)], "tiptoeing-reference.mp4", { type: "video/mp4" }));
+  }
+  const options = { referenceVideo, beforeSubmit };
+  return provider === "poyo" ? poyoSubmit(urls, resolution, aspectRatio, scenario, context, options) : submitYirVideo(urls, resolution, `zvl-${code}`, aspectRatio, scenario, context, options);
 }
 export async function statusForProvider(provider: ProviderName, id: string) {
   return provider === "poyo" ? poyoStatus(id) : getYirStatus(id);

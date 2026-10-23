@@ -1,4 +1,6 @@
-import { buildVideoPrompt, type PromptScenario } from "./video-prompt";
+import { type PromptScenario } from "./video-prompt";
+import { templatePrompt } from "./template-prompt";
+import { videoSpec, type PromptContext } from "./video-templates";
 
 // PoYo API contract: https://docs.poyo.ai/api-manual/video-series/seedance-2.5
 export type Resolution = "480p" | "720p";
@@ -15,11 +17,13 @@ function httpsUrl(value: unknown): string {
   if (url.protocol !== "https:" || url.username || url.password) throw new Error("Provider returned an insecure media URL.");
   return url.href;
 }
-export function makeSeedanceInput(urls: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral") {
+export function makeSeedanceInput(urls: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral", context?: PromptContext, referenceVideo?: string) {
+  const spec = videoSpec(context);
+  if (spec.referenceVideo && !referenceVideo) throw new Error("The dance reference video is required.");
   if (resolution !== "480p" && resolution !== "720p") throw new Error("Unsupported resolution.");
   if (urls.length !== 2) throw new Error("Two portraits are required.");
   if (aspectRatio !== "9:16" && aspectRatio !== "16:9") throw new Error("Unsupported aspect ratio.");
-  return { prompt: buildVideoPrompt(scenario, aspectRatio, true), reference_image_urls: urls.map(httpsUrl), duration: 8, resolution, aspect_ratio: aspectRatio, generate_audio: false };
+  return { prompt: templatePrompt(scenario, aspectRatio, true, context), reference_image_urls: urls.map(httpsUrl), ...(spec.referenceVideo ? { reference_video_urls: [httpsUrl(referenceVideo)] } : {}), duration: spec.durationSeconds, resolution, aspect_ratio: aspectRatio, generate_audio: false };
 }
 export function parseUpload(response: unknown): string {
   const body = record(response);
@@ -62,8 +66,10 @@ export async function uploadPortrait(file: File): Promise<string> {
   form.append("file", file, file.name);
   return parseUpload(await request("/api/common/upload/stream", { method: "POST", body: form }, 45000));
 }
-export async function submitVideo(urls: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral"): Promise<string> {
-  return parseSubmit(await request("/api/generate/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "seedance-2.5", input: makeSeedanceInput(urls, resolution, aspectRatio, scenario) }) }));
+export async function submitVideo(urls: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral", context?: PromptContext, options?: { referenceVideo?: string; beforeSubmit?: () => Promise<void> }): Promise<string> {
+  const input = makeSeedanceInput(urls, resolution, aspectRatio, scenario, context, options?.referenceVideo);
+  await options?.beforeSubmit?.();
+  return parseSubmit(await request("/api/generate/submit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model: "seedance-2.5", input }) }));
 }
 export async function getVideoStatus(taskId: string) {
   return parseTask(await request(`/api/generate/status/${encodeURIComponent(taskId)}`, { method: "GET" }));

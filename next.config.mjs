@@ -6,6 +6,8 @@ const nextConfig = {
     .split(",").map(host => host.trim()).filter(Boolean),
   distDir: process.env.NODE_ENV === "development" ? ".next-dev" : ".next",
   poweredByHeader: false,
+  // Paid generation (including webhook/worker) reads the fixed motion reference.
+  outputFileTracingIncludes: { "/api/**/*": ["./public/tiptoeing-reference.mp4"] },
   async headers() {
     return [{
       source: "/:path*",

@@ -1,4 +1,5 @@
 import "server-only";
+import { localMockPayments } from "./local-mock-payments";
 
 import { randomBytes } from "node:crypto";
 
@@ -22,9 +23,11 @@ import { selectedProvider, type Resolution, type AspectRatio, type ProviderName 
 
 import type { PromptScenario } from "./video-prompt";
 
-export type Order = { id:string; code:string; visitor_hash:string; product_name:string; amount_minor:number; currency:string;
+import { DEFAULT_TEMPLATE, videoSpec, videoTemplate, type TemplateId } from "./video-templates";
 
- resolution:Resolution; aspect_ratio:AspectRatio; video_provider:ProviderName; environment:"test"|"live";
+export type Order = { template_id:TemplateId; prompt_version:string; id:string; code:string; visitor_hash:string; product_name:string; amount_minor:number; currency:string;
+
+ resolution:Resolution; aspect_ratio:AspectRatio; video_provider:ProviderName; provider:string; environment:"test"|"live";
 
  status:string; generation_status:string; provider_payment_id:string|null; input_photos:InputPhoto[]; input_expires_at:Date; prompt_scenario:PromptScenario|null;
 
@@ -46,7 +49,7 @@ export async function orderById(id:string) {
 
 export function publicOrder(order:Order) {
 
-  return {code:order.code,status:order.status,generationStatus:order.generation_status,resolution:order.resolution,aspectRatio:order.aspect_ratio,
+  return {code:order.code,templateId:order.template_id,durationSeconds:videoSpec({templateId:order.template_id,promptVersion:order.prompt_version}).durationSeconds,status:order.status,generationStatus:order.generation_status,resolution:order.resolution,aspectRatio:order.aspect_ratio,
 
     amountMinor:order.amount_minor,currency:order.currency,attempts:order.attempts,error:order.error,createdAt:order.created_at.toISOString(),
 
@@ -54,14 +57,15 @@ export function publicOrder(order:Order) {
 
 }
 
-export async function ordersFor(visitor:string) {
+export async function ordersFor(visitor:string,templateId:TemplateId=DEFAULT_TEMPLATE) {
 
-  return (await pool().query<Order>("SELECT * FROM zombievideolab_pro.billing_orders WHERE visitor_hash=$1 ORDER BY created_at DESC LIMIT 50",[visitor])).rows;
+  return (await pool().query<Order>("SELECT * FROM zombievideolab_pro.billing_orders WHERE visitor_hash=$1 AND template_id=$2 ORDER BY created_at DESC LIMIT 50",[visitor,templateId])).rows;
 
 }
 
-export async function createOrder(visitor:string,code:string,resolution:Resolution,aspect:AspectRatio) {
+export async function createOrder(visitor:string,code:string,resolution:Resolution,aspect:AspectRatio,templateId:TemplateId=DEFAULT_TEMPLATE,mockRequest?:Request) {
 
+  const mockPayment=!!mockRequest && localMockPayments(mockRequest,templateId);
   const db=await pool().connect();
 
   try {
@@ -74,7 +78,7 @@ export async function createOrder(visitor:string,code:string,resolution:Resoluti
 
     if(previous) {
 
-      if(previous.visitor_hash!==visitor) throw new Error("This video code is unavailable. Generate a new code.");
+      if(previous.visitor_hash!==visitor || previous.template_id!==templateId || previous.resolution!==resolution || previous.aspect_ratio!==aspect || (previous.provider==="local_mock")!==mockPayment) throw new Error("This video code is unavailable. Generate a new code.");
 
       await db.query("COMMIT"); return {order:previous,created:false};
 
@@ -84,32 +88,52 @@ export async function createOrder(visitor:string,code:string,resolution:Resoluti
 
     const price=(await db.query<Price>(`SELECT p.*,g.name,g.description FROM zombievideolab_pro.product_prices p
 
-      JOIN zombievideolab_pro.products g ON g.id=p.product_id WHERE p.resolution=$1 AND p.is_active AND g.is_active FOR SHARE OF p,g`,[resolution])).rows[0];
+      JOIN zombievideolab_pro.products g ON g.id=p.product_id WHERE p.resolution=$1 AND p.product_id=$2 AND p.is_active AND g.is_active FOR SHARE OF p,g`,[resolution,videoTemplate(templateId).productId])).rows[0];
 
     if(!price) throw new Error("This video option is no longer available.");
 
-    const environment=stripeEnvironment();
-    const mapping=(await db.query<{stripe_product_id:string;stripe_price_id:string}>(
+    if(price.duration_seconds!==videoTemplate(templateId).durationSeconds) throw new Error("This video option is temporarily unavailable. Contact support to update its duration.");
+
+    const environment=mockPayment ? "test" : stripeEnvironment();
+    const mapping=mockPayment ? null : (await db.query<{stripe_product_id:string;stripe_price_id:string}>(
       `SELECT stripe_product_id,stripe_price_id FROM zombievideolab_pro.stripe_price_mappings
        WHERE price_id=$1 AND environment=$2 FOR SHARE`,[price.id,environment])).rows[0];
-    if(!mapping) throw new Error("This video option is not configured for payment yet. Please try later.");
+    if(!mockPayment && !mapping) throw new Error("This video option is not configured for payment yet. Please try later.");
 
     const id=randomId();
 
     const result=await db.query<Order>(`INSERT INTO zombievideolab_pro.billing_orders
 
-      (id,code,visitor_hash,product_id,price_id,product_name,amount_minor,currency,resolution,aspect_ratio,video_provider,environment,stripe_product_id,stripe_price_id,input_expires_at)
+      (id,code,visitor_hash,product_id,price_id,product_name,amount_minor,currency,resolution,aspect_ratio,video_provider,environment,stripe_product_id,stripe_price_id,template_id,prompt_version,provider,input_expires_at)
 
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,now()+interval '3 days') RETURNING *`,
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,now()+interval '3 days') RETURNING *`,
 
-      [id,code,visitor,price.product_id,price.id,price.name,price.amount_minor,price.currency,resolution,aspect,selectedProvider(),environment,mapping.stripe_product_id,mapping.stripe_price_id]);
+      [id,code,visitor,price.product_id,price.id,price.name,price.amount_minor,price.currency,resolution,aspect,selectedProvider(),environment,mapping?.stripe_product_id ?? null,mapping?.stripe_price_id ?? null,templateId,videoTemplate(templateId).promptVersion,mockPayment?"local_mock":"stripe"]);
 
-    await db.query(`INSERT INTO zombievideolab_pro.billing_checkouts(id,order_id,environment,expires_at) VALUES($1,$2,$3,now()+interval '1 hour')`,[randomId(),id,stripeEnvironment()]);
+    await db.query(`INSERT INTO zombievideolab_pro.billing_checkouts(id,order_id,environment,provider,expires_at) VALUES($1,$2,$3,$4,now()+interval '1 hour')`,[randomId(),id,environment,mockPayment?"local_mock":"stripe"]);
 
     await db.query("COMMIT"); return {order:result.rows[0],created:true};
 
   } catch(e) { await db.query("ROLLBACK"); throw e; } finally { db.release(); }
 
+}
+
+export async function completeLocalMockPayment(request:Request,order:Order) {
+  if(!localMockPayments(request,order.template_id) || order.provider!=="local_mock" || order.environment!=="test" || order.stripe_price_id || order.stripe_product_id)
+    throw new Error("This order cannot use simulated checkout. Create a new video code.");
+  const db=await pool().connect();
+  try {
+    await db.query("BEGIN");
+    const updated=(await db.query<Order>(`UPDATE zombievideolab_pro.billing_orders
+      SET status='paid',generation_status=CASE WHEN status='pending' THEN 'ready' ELSE generation_status END,
+          provider_payment_id=COALESCE(provider_payment_id,$2),paid_at=COALESCE(paid_at,now()),updated_at=now()
+      WHERE id=$1 AND provider='local_mock' AND environment='test' AND status IN ('pending','paid')
+        AND jsonb_array_length(input_photos)=2 AND input_expires_at>now() RETURNING *`,[order.id,`local_mock_${order.id}`])).rows[0];
+    if(!updated) throw new Error("This order cannot complete simulated checkout. Create a new video code.");
+    await db.query("UPDATE zombievideolab_pro.billing_checkouts SET status='complete',updated_at=now() WHERE order_id=$1 AND provider='local_mock'",[order.id]);
+    await db.query("COMMIT");
+    return updated;
+  } catch(error) {await db.query("ROLLBACK");throw error;} finally {db.release();}
 }
 
 export async function saveOrderPhotos(order:Order,files:File[],scenario:PromptScenario) {
@@ -153,12 +177,12 @@ export async function checkoutFor(order:Order,origin:string) {
 
     mode:"payment",allowed_payment_method_types:["card"],client_reference_id:order.id,
 
-    metadata:{order_id:order.id,video_code:order.code},payment_intent_data:{metadata:{order_id:order.id,video_code:order.code}},
+    metadata:{order_id:order.id,video_code:order.code,template_id:order.template_id},payment_intent_data:{metadata:{order_id:order.id,video_code:order.code,template_id:order.template_id}},
 
     line_items:[{quantity:1,price:order.stripe_price_id}],
     adaptive_pricing:{enabled:false},
 
-    success_url:`${origin}/?checkout=success&code=${order.code}#generator`,cancel_url:`${origin}/?checkout=cancel&code=${order.code}#generator`,
+    success_url:`${origin}${videoTemplate(order.template_id).path}?checkout=success&code=${order.code}#generator`,cancel_url:`${origin}${videoTemplate(order.template_id).path}?checkout=cancel&code=${order.code}#generator`,
 
     expires_at:Math.floor(row.expires_at.getTime()/1000)
 
@@ -218,7 +242,7 @@ async function acceptSession(db:PoolClient,session:Stripe.Checkout.Session) {
 
 export async function reconcileOrder(order:Order) {
 
-  if(order.status!=="pending" || order.environment!==stripeEnvironment()) return;
+  if(order.provider!=="stripe" || order.status!=="pending" || order.environment!==stripeEnvironment()) return;
 
   const checkout=(await pool().query<{provider_checkout_id:string|null}>("SELECT provider_checkout_id FROM zombievideolab_pro.billing_checkouts WHERE order_id=$1",[order.id])).rows[0];
 

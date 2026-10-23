@@ -1,4 +1,6 @@
-import { buildVideoPrompt, type PromptScenario } from "./video-prompt";
+import { type PromptScenario } from "./video-prompt";
+import { templatePrompt } from "./template-prompt";
+import { videoSpec, type PromptContext } from "./video-templates";
 import { isIP } from "node:net";
 import type { Resolution, AspectRatio } from "./poyo";
 
@@ -39,23 +41,30 @@ async function api(path: string, init: RequestInit, timeout = 30000): Promise<Re
     const detail = error && typeof error === "object" ? error as Record<string, unknown> : {};
     const code = typeof detail.code === "string" ? detail.code : `HTTP ${response.status}`;
     // Never reflect untrusted provider messages or input echoes to the browser.
-    throw new Error(`YIR ${code}. ${response.status === 401 ? "Check YIR_API_KEY." : "Check model support, wallet balance and cost limit."}`);
+    throw new Error(`YIR ${code}. ${response.status === 401 ? "Check YIR_API_KEY." : "Check model support and wallet balance."}`);
   }
   return object(payload);
 }
 function json(body: unknown): RequestInit {
   return { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
 }
-export function makeYirRequest(ids: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral") {
+export function makeYirRequest(ids: string[], resolution: Resolution, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral", context?: PromptContext, referenceVideo?: string) {
+  const spec = videoSpec(context);
+  if (spec.referenceVideo && !referenceVideo) throw new Error("The dance reference video is required.");
+  // YIR subject grouping only supports all-image references, not mixed video inputs.
+  const subjects = !spec.referenceVideo && process.env.YIR_REFERENCE_SUBJECTS === "true";
   if (ids.length !== 2 || (resolution !== "480p" && resolution !== "720p")) throw new Error("Two photos and a supported resolution are required.");
   if (aspectRatio !== "9:16" && aspectRatio !== "16:9") throw new Error("Unsupported aspect ratio.");
   return {
     model: process.env.YIR_MODEL_ID?.trim() || "bytedance/seedance-2.0",
     input: {
-      type: "reference", prompt: buildVideoPrompt(scenario, aspectRatio, process.env.YIR_REFERENCE_SUBJECTS === "true"),
-      references: ids.map((id, index) => ({ role: "reference_image", file_id: fileId(id), ...(process.env.YIR_REFERENCE_SUBJECTS === "true" ? { subject: `Image${index + 1}` } : {}) })),
+      type: "reference", prompt: templatePrompt(scenario, aspectRatio, subjects, context),
+      references: [
+        ...ids.map((id, index) => ({ role: "reference_image", file_id: fileId(id), ...(subjects ? { subject: `Image${index + 1}` } : {}) })),
+        ...(spec.referenceVideo ? [{ role: "reference_video", file_id: fileId(referenceVideo) }] : []),
+      ],
     },
-    parameters: { duration: 8, resolution, aspect_ratio: aspectRatio },
+    parameters: { duration: spec.durationSeconds, resolution, aspect_ratio: aspectRatio, ...(spec.referenceVideo ? { generate_audio: false } : {}) },
     routing: { preference: "cost", fallback: true },
   };
 }
@@ -100,27 +109,29 @@ export async function uploadYirPortrait(file: File): Promise<string> {
     if (!result.ok) throw new Error(`YIR file upload returned HTTP ${result.status}.`);
     offset += size;
   }
-  if (offset !== file.size) throw new Error("YIR upload plan does not match photo size.");
+  if (offset !== file.size) throw new Error("YIR upload plan does not match file size.");
   let state = await api(`/v1/files/${id}/complete`, json({}));
   for (let n = 0; n < 12 && state.status === "processing"; n++) {
     await new Promise(resolve => setTimeout(resolve, 2500));
     state = await api(`/v1/files/${id}`, { method: "GET" });
   }
-  if (state.status !== "ready") throw new Error("YIR did not finish processing the uploaded photo.");
+  if (state.status !== "ready") throw new Error("YIR did not finish processing the uploaded file.");
   return id;
 }
-export async function submitYirVideo(ids: string[], resolution: Resolution, idempotencyKey: string, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral"): Promise<string> {
-  const maxCost = process.env.YIR_MAX_COST_USD?.trim();
-  if (!maxCost || !/^(?:0|[1-9]\d{0,12})(?:\.\d{1,6})?$/.test(maxCost) || Number(maxCost) <= 0) throw new Error("YIR_MAX_COST_USD must be a positive USD amount before generation.");
-  const input = makeYirRequest(ids, resolution, aspectRatio, scenario);
+export async function submitYirVideo(ids: string[], resolution: Resolution, idempotencyKey: string, aspectRatio: AspectRatio = "9:16", scenario: PromptScenario = "gender_neutral", context?: PromptContext, options?: { referenceVideo?: string; beforeSubmit?: () => Promise<void> }): Promise<string> {
+  const input = makeYirRequest(ids, resolution, aspectRatio, scenario, context, options?.referenceVideo);
   const quote = await api("/v1/videos/quotes", json(input));
   if (object(quote.supply).available !== true) throw new Error("No YIR route supports these reference photos and video settings.");
   const notices = Array.isArray(quote.parameter_notices) ? quote.parameter_notices : [];
   if (notices.some(item => object(item).disposition === "ignored")) throw new Error("YIR cannot honor all requested video parameters.");
+  const normalized = object(quote.parameters);
+  if (normalized.duration !== input.parameters.duration || normalized.resolution !== resolution || normalized.aspect_ratio !== aspectRatio) throw new Error("YIR cannot honor the requested duration, resolution and aspect ratio.");
   const estimate = quote.expected_amount;
-  if (typeof estimate !== "string" || !/^\d+(?:\.\d+)?$/.test(estimate) || Number(estimate) > Number(maxCost)) throw new Error("YIR quote is unavailable or exceeds YIR_MAX_COST_USD.");
+  if (typeof estimate !== "string" || !/^\d+(?:\.\d+)?$/.test(estimate)) throw new Error("YIR quote is unavailable.");
+  // No local cost cap: omit the optional max_cost field. Provider charges apply.
+  await options?.beforeSubmit?.();
   return parseYirJobId(await api("/v1/videos/generations", {
-    ...json({ ...input, max_cost: maxCost }), headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
+    ...json(input), headers: { "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
   }, 45000));
 }
 export async function getYirStatus(id: string) {

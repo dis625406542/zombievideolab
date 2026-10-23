@@ -1,0 +1,48 @@
+// Shared by the visible accordion and FAQ JSON-LD. Keep claims aligned with the tool.
+export const faqGroups = [
+  {
+    title: "The trend and our generator",
+    questions: [
+      { question: "What is Tiptoeing In My Jordans?", answer: "Tiptoeing In My Jordans refers here to the playful dance-video trend built around exaggerated tiptoe steps and a surprised onlooker. Our template turns that idea into a personalized AI scene, using your two consenting adult portraits rather than simply placing a filter over an existing clip." },
+      { question: "What does the Tiptoeing In My Jordans AI video generator do?", answer: "The Tiptoeing In My Jordans AI video generator on Zombie Video Lab creates a new 15-second dance interaction from two photos. You supply the people; our template supplies the scene instructions and motion reference. Choose a resolution and frame, purchase once, then play and download the finished clip." },
+      { question: "What makes this Tiptoeing In My Jordans template useful?", answer: "Tiptoeing In My Jordans generation combines a prepared storyboard, a motion reference and two separate character roles. You do not need to write a detailed prompt, edit a timeline or buy a subscription. Upload-time safety checks, browser-based order recovery and MP4 downloads keep the workflow straightforward." },
+      { question: "What happens in the finished Tiptoeing In My Jordans video?", answer: "The Tiptoeing In My Jordans storyboard asks for a warm barn setting, a playful shushing gesture, a mischievous expression and bent-knee tiptoe footwork. It includes a footwork close-up and a seated observer reacting with surprise. These are generation instructions, not a guarantee that every shot will match exactly." },
+      { question: "Does Tiptoeing In My Jordans include the original song?", answer: "No. The generator requests a silent video, without a supplied soundtrack or licensed lyrics. The reference guides visual movement and timing, not music rights. If you add audio in another editor, use a track you have permission to publish on your chosen platform." },
+      { question: "Is this an official Nike or Jordan product?", answer: "No. Tiptoeing In My Jordans is an independent, trend-inspired template on Zombie Video Lab. We are not affiliated with Nike, Jordan or the original performers. The service does not provide branded assets, music licenses or permission to impersonate somebody. Upload only authorized photos of consenting adults." },
+    ],
+  },
+  {
+    title: "Photos, roles and the 15-second format",
+    questions: [
+      { question: "How do I make a Tiptoeing In My Jordans video?", answer: "To make a Tiptoeing In My Jordans video, upload the dancer first and the seated observer second. Wait for both AI photo checks, choose 480p or 720p and an aspect ratio, confirm photo permissions, then review checkout. After verified payment, the server submits your 15-second generation request." },
+      { question: "Which photo is the dancer, and which is the observer?", answer: "For Tiptoeing In My Jordans, photo 1 supplies the dancer and photo 2 supplies the seated observer. Roles follow upload order, not gender. Put the person you want performing the footwork in the first slot. Each photo should contain one adult with a clear, unobstructed face." },
+      { question: "Can either person be the dancer, regardless of gender?", answer: "Yes. Tiptoeing In My Jordans does not restrict the dancer or observer role by gender. Swap your photos before checkout to reverse the roles. Once an order is created, its photos and format are saved together; use a new video code if you need a different setup." },
+      { question: "How long is a Tiptoeing In My Jordans video?", answer: "A new Tiptoeing In My Jordans order requests 15 seconds, whether you choose 480p or 720p. This is the output length, not the time needed to generate it. The selected duration is sent to the video API along with your resolution and frame; encoding can introduce a small timing difference." },
+      { question: "What photos and file formats work best?", answer: "Use well-lit JPG, PNG or WebP photos with one consenting adult per image. Keep faces clear and clothing visible. Avoid group shots, collages, heavy filters and obstructed faces. Each upload can be up to 10 MB; the browser optimizes photos before submission." },
+      { question: "Will the AI preserve both faces and clothing?", answer: "The generation instructions ask the model to preserve each uploaded person's own face, hair, clothing and accessories without swapping identities. Clear reference photos help. AI can still change details, footwear or anatomy, so this is not a promise of an exact likeness or frame-perfect choreography." },
+    ],
+  },
+  {
+    title: "Quality, pricing and generation",
+    questions: [
+      { question: "Does Tiptoeing In My Jordans support 480p and 720p?", answer: "Yes. Tiptoeing In My Jordans offers 480p and 720p for the same 15-second storyboard. Resolution controls the requested output quality, not the number of characters or story length. Choose the option you want before checkout; the generator sends that resolution to the API instead of merely changing the player label." },
+      { question: "Can Tiptoeing In My Jordans generate vertical and landscape video?", answer: "Tiptoeing In My Jordans supports 9:16 portrait and 16:9 landscape. Portrait suits phone-first viewing; landscape leaves more horizontal room for the dancer and observer. Your selection is included in both the API parameters and the prompt, with instructions to keep the footwork visible." },
+      { question: "How much does Tiptoeing In My Jordans cost?", answer: "Tiptoeing In My Jordans is sold per video, with separate 480p and 720p prices shown beside the quality options. Check the current USD total in the confirmation dialog before paying. There is no subscription or credit bundle, and an eligible retry uses the original paid order rather than a second purchase." },
+      { question: "Can I generate on my phone without an account?", answer: "Yes. Tiptoeing In My Jordans supports mobile photo selection, checkout, generation status and playback. No account registration is required. Stay in the same browser and keep its cookies. Your video code helps identify an order for support, but it is not a password for opening private videos on another device." },
+      { question: "How long does generation take?", answer: "Video generation is not instant; processing depends on the provider's queue and selected settings. The page displays progress while a task is running. Its progress bar is an estimate, not a guaranteed countdown. Keep your code and check the same browser instead of paying again while waiting." },
+      { question: "What happens if a paid generation fails?", answer: "A confirmed Tiptoeing In My Jordans generation failure may be retried on the same paid order while its retry allowance and stored photos remain available. Open Payments & retries to check your options. If submission status is uncertain, do not buy again; contact support with the video code and consult our Refund & Delivery Policy." },
+    ],
+  },
+  {
+    title: "Downloads, privacy and safe use",
+    questions: [
+      { question: "Can I download my Tiptoeing In My Jordans video?", answer: "Yes. A completed Tiptoeing In My Jordans video can be played and downloaded as an MP4. Use the download button below the player or beside its thumbnail. Some mobile browsers open a preview first; use their Save or Share control to keep a copy on your device." },
+      { question: "Will my finished video still be here after a refresh?", answer: "Your completed video records can reappear after a refresh in the same browser, using its signed cookie and saved video references. Do not clear that browser's cookies or switch devices expecting automatic recovery. This saves access information; it does not permanently store the full MP4 in your browser cache." },
+      { question: "How long can I access my finished download?", answer: "Download your Tiptoeing In My Jordans MP4 within three days after generation completes. The private collection is a temporary delivery area, not a permanent video library. Save your own copy promptly. Keeping a video code alone does not extend retention or restore access after your browser credentials are removed." },
+      { question: "What if a completed video will not play?", answer: "If your video shows as completed but the player cannot load, try the download button and refresh the page in the same browser. Do not pay for a replacement just because playback failed. If both playback and download are unavailable, contact support with your video code." },
+      { question: "Are Tiptoeing In My Jordans uploads private and checked for safety?", answer: "Tiptoeing In My Jordans photos are screened by AI on upload and checked server-side before generation. Only authorized, consenting adult portraits are allowed; nudity, sexual content and graphic violence are prohibited. Approved photos are processed by external AI services. See our Privacy Policy for handling and retention; automated checks are not infallible." },
+      { question: "Can I share a Tiptoeing In My Jordans video on social media?", answer: "You can download a Tiptoeing In My Jordans result for sharing when you have the necessary photo, likeness and other rights. Follow the destination platform's AI-content rules, and do not present a synthetic scene as a real event. We do not supply third-party music rights or guarantee platform approval." },
+    ],
+  },
+] as const;
+export const questions = faqGroups.flatMap(group => [...group.questions]);

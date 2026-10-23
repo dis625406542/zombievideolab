@@ -12,6 +12,8 @@ const args = Object.fromEntries(process.argv.slice(2).map(arg => {
   if (!arg.startsWith('--') || at < 0) throw new Error('Use --name=value arguments');
   return [arg.slice(2, at), arg.slice(at + 1)];
 }));
+const templateId = args.template ?? "zombie-couple";
+if (!["zombie-couple", "tiptoeing-in-my-jordans"].includes(templateId)) throw new Error("Unknown --template value");
 let client;
 try {
   const secret = process.env.STRIPE_SECRET_KEY?.trim();
@@ -42,8 +44,8 @@ try {
   await client.query('BEGIN');
   for (const entry of entries) {
     const result = await client.query(`UPDATE zombievideolab_pro.product_prices
-      SET amount_minor=$2, currency='USD', updated_at=now() WHERE resolution=$1 AND is_active RETURNING id`, [entry.resolution, entry.amount_minor]);
-    if (result.rowCount !== 1) throw new Error(`Expected exactly one active ${entry.resolution} price; run db:migrate first`);
+      SET amount_minor=$2, currency='USD', updated_at=now() WHERE resolution=$1 AND product_id=$3 AND is_active RETURNING id`, [entry.resolution, entry.amount_minor, templateId]);
+    if (result.rowCount !== 1) throw new Error(`Expected exactly one active ${templateId} / ${entry.resolution} price; run db:migrate first`);
     await client.query(`INSERT INTO zombievideolab_pro.stripe_price_mappings
       (price_id,environment,stripe_product_id,stripe_price_id) VALUES($1,$2,$3,$4)
       ON CONFLICT(price_id,environment) DO UPDATE SET stripe_product_id=EXCLUDED.stripe_product_id,
@@ -51,7 +53,7 @@ try {
     [result.rows[0].id, environment, entry.stripe_product_id, entry.stripe_price_id]);
   }
   await client.query('COMMIT');
-  console.log(`Configured ${environment} Stripe products. Existing orders were not changed.`);
+  console.log(`Configured ${templateId} / ${environment} Stripe products. Existing orders were not changed.`);
   console.table(entries);
 } catch (error) {
   await client?.query('ROLLBACK').catch(() => {});

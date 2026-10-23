@@ -245,3 +245,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
 .demo-window .demo-player{position:relative;inset:auto}
 .demo-window .demo-format-strip{position:relative;inset:auto}
 .demo-window .demo-media{position:relative;inset:auto;width:100%;aspect-ratio:16/9}
+
+/* Use the same format bar for private results and public samples. Keep it out of the video frame. */
+.visual-window.result-window{flex:none;min-height:0;max-height:none;height:auto;aspect-ratio:auto}
+.result-window .demo-format-strip{position:relative;inset:auto}
+.result-media{position:relative;width:100%;max-height:720px;background:#101010}
+.visual-window.result-window:after,.visual-window.demo-window:after{display:none}
+.back-to-sample{align-self:flex-end;display:inline-flex;align-items:center;gap:7px;margin-top:10px;padding:9px 12px;background:#242426;border:1px solid #55545b;border-radius:6px;color:#dedee8;font-size:11px;cursor:pointer;min-height:38px}
+.back-to-sample:hover{background:#333237}
