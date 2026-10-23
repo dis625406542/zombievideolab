@@ -14,7 +14,7 @@ export const VIDEO_TEMPLATES = {
     hasDemo: true,
   },
   "tiptoeing-in-my-jordans": {
-    id: "tiptoeing-in-my-jordans", productId: "tiptoeing-in-my-jordans", path: "/video/tiptoeing-in-my-jordans", promptVersion: "tiptoeing-v4", durationSeconds: 15,
+    id: "tiptoeing-in-my-jordans", productId: "tiptoeing-in-my-jordans", path: "/video/tiptoeing-in-my-jordans", promptVersion: "tiptoeing-v3", durationSeconds: 15,
     title: "Tiptoeing In My Jordans AI video generator", overline: "TWO PHOTOS. ONE PLAYFUL MOMENT.",
     heading: "Choose who dances", emphasis: "and who watches.",
     intro: "Make your own version of the Tiptoeing In My Jordans meme. Our ready-made template guides the scene, reactions and footwork; no prompt writing needed.",
