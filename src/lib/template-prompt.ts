@@ -1,4 +1,4 @@
-import { TIPTOEING_STORYBOARD_V2, TIPTOEING_STORYBOARD_V3 } from "./tiptoeing-storyboard";
+import { TIPTOEING_STORYBOARD_V2, TIPTOEING_STORYBOARD_V3, TIPTOEING_STORYBOARD_V4 } from "./tiptoeing-storyboard";
 import { buildVideoPrompt, type PromptScenario } from "./video-prompt";
 import { DEFAULT_TEMPLATE, videoSpec, videoTemplate, type PromptContext } from "./video-templates";
 
@@ -10,10 +10,11 @@ export function templatePrompt(scenario: PromptScenario, aspectRatio: "9:16" | "
   if (template.id === DEFAULT_TEMPLATE) return buildVideoPrompt(scenario, aspectRatio, tagged);
   const first = tagged ? "@Image1" : "Image 1";
   const second = tagged ? "@Image2" : "Image 2";
-  if (version === "tiptoeing-v2" || version === "tiptoeing-v3") {
+  if (version === "tiptoeing-v2" || version === "tiptoeing-v3" || version === "tiptoeing-v4") {
     const video = tagged ? "@Video1" : "the attached reference video";
-    const withAudio = version === "tiptoeing-v3";
-    const storyboard = (withAudio ? TIPTOEING_STORYBOARD_V3 : TIPTOEING_STORYBOARD_V2).replaceAll("Image 1", first).replaceAll("Image 2", second);
+    const withAudio = version !== "tiptoeing-v2";
+    const versionedStoryboard = version === "tiptoeing-v4" ? TIPTOEING_STORYBOARD_V4 : version === "tiptoeing-v3" ? TIPTOEING_STORYBOARD_V3 : TIPTOEING_STORYBOARD_V2;
+    const storyboard = versionedStoryboard.replaceAll("Image 1", first).replaceAll("Image 2", second);
     return `${storyboard}
 
 ATTACHED REFERENCES: ${first} is the dancer; ${second} is the seated observer; ${video} guides movement and shot timing, NOT the identity or clothing of either uploaded person. Never copy the reference video's actors' faces or outfits.

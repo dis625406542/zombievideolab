@@ -10,7 +10,7 @@ import "./template.css";
 
 const path = "/video/tiptoeing-in-my-jordans";
 const title = "Tiptoeing In My Jordans AI Video Generator";
-const description = "Create a Tiptoeing In My Jordans video from two photos. Choose 480p or 720p, pay once, and download your 15-second AI video. No account needed.";
+const description = "Remake the Tiptoeing In My Jordans meme with two photos: choose who dances and who watches. Pay once for a 15-second AI video. No account needed.";
 export const metadata: Metadata = {
   title, description,
   alternates: { canonical: path },
@@ -53,7 +53,7 @@ export default async function TiptoeingPage() {
     },
     { "@context": "https://schema.org", "@type": "SoftwareApplication",
       name: title, applicationCategory: "MultimediaApplication", operatingSystem: "Web browser", url: `${SITE_URL}${path}`,
-      description: "Create one 15-second AI dance video with requested AI-created background music from two adult portraits. No login or subscription. Download your private MP4 within three days.",
+      description: "Make your own version of the Tiptoeing In My Jordans meme: photo 1 dances, photo 2 watches and reacts. Create a 15-second AI video with requested AI-created music. Pay once, no account. Download your private MP4 within three days.",
       ...(prices.length ? { offers: prices.map(price => ({ "@type": "Offer", name: `${price.resolution} · 15-second video`, price: (price.amount_minor / 100).toFixed(2), priceCurrency: price.currency, url: `${SITE_URL}${path}#generator` })) } : {}),
     },
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: questions.map(({ question, answer }) => ({ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } })) },
@@ -65,8 +65,16 @@ export default async function TiptoeingPage() {
       <div className="announcement">A NEW MOVE. YOUR TWO CHARACTERS. <span className="announcement-flame">✦</span> PAY ONCE, CREATE ONCE.</div>
       <section className="hero wrapper" aria-labelledby="main-heading">
         <nav className="tiptoe-breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Tiptoeing In My Jordans</span></nav>
-        <div className="hero-heading"><p className="eyebrow">TWO PHOTOS. A LITTLE FOOTWORK.</p><h1 id="main-heading">Tiptoeing In My Jordans <em>AI Video Generator</em></h1><p className="hero-subtitle">Create a 15-second Tiptoeing In My Jordans video from your two photos. One dancer, one seated observer and a playful, reference-guided scene. Choose your quality, pay once, and let the scene unfold.</p></div>
+        <div className="hero-heading"><p className="eyebrow">TWO PHOTOS. A LITTLE FOOTWORK.</p><h1 id="main-heading">Tiptoeing In My Jordans <em>AI Video Generator</em></h1><p className="hero-subtitle">Make your own version of the Tiptoeing In My Jordans meme with two photos. Choose who dances and who watches — our ready-made template guides the scene, reactions and footwork.</p><ul className="tiptoe-quick-facts" aria-label="Video and purchase essentials"><li>15-second video</li><li>No account needed</li><li>One-time payment</li><li>MP4 download</li></ul></div>
         <Generator templateId="tiptoeing-in-my-jordans" initialPrices={prices.map(({ resolution, amount_minor, currency, name, purchasable }) => ({ resolution, amount_minor, currency, name, purchasable }))} />
+        <div className="tiptoe-tool-summary" aria-label="From two photos to your video">
+          <ol>
+            <li><span aria-hidden="true">01</span><div><strong>Choose your two roles</strong><p>Photo 1 dances. Photo 2 watches and reacts. Upload one clear, consenting adult portrait per role; gender does not decide the part.</p></div></li>
+            <li><span aria-hidden="true">02</span><div><strong>Choose quality. Pay once.</strong><p>Pick 480p or 720p, in 9:16 or 16:9. Review the price before checkout. No subscription, credits or prompt writing.</p></div></li>
+            <li><span aria-hidden="true">03</span><div><strong>Keep your code. Download your MP4.</strong><p>Get a 15-second AI meme video. Keep your video code and download within 3 days; this browser remembers your access references.</p></div></li>
+          </ol>
+          <p className="tiptoe-summary-note">The template guides the shushing, surprised reactions and signature tiptoe footwork. AI results vary; exact faces, gestures, shots and music are not guaranteed.</p>
+        </div>
         <p className="hero-note"><ShieldCheck size={16} aria-hidden="true"/> Photos are screened before generation. No subscription. No account required.</p>
       </section>
       <section className="trust-row wrapper" aria-label="Template highlights"><div><ImagePlus size={17}/>Two photo roles</div><div><Footprints size={17}/>Playful footwork</div><div><CreditCard size={17}/>Pay per video</div><div><Smartphone size={17}/>Mobile friendly</div></section>

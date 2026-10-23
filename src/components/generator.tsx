@@ -24,9 +24,10 @@ function newVideoCode(): string {
   return Array.from(bytes, byte => byte.toString(16).padStart(2, "0")).join("").toUpperCase();
 }
 
-function UploadTile({ role, label, photo, review, onFile, onRemove }: {
+function UploadTile({ role, label, description, photo, review, onFile, onRemove }: {
   role: Role;
   label: string;
+  description?: string;
   photo: Photo | null;
   review: Review;
   onFile: (role: Role, file: File) => void;
@@ -34,7 +35,8 @@ function UploadTile({ role, label, photo, review, onFile, onRemove }: {
 }) {
   const name = label;
   const number = role === "zombie" ? "01" : "02";
-  return (
+  const descriptionId = description ? `upload-${role}-description` : undefined;
+  const tile = (
     <div className={`upload-tile ${photo ? "has-photo" : ""}`} onDragOver={(event) => event.preventDefault()} onDrop={(event) => { event.preventDefault(); const file = event.dataTransfer.files?.[0]; if (file) onFile(role, file); }}>
       <span className="upload-number">{number} / {name.toUpperCase()}</span>
       {photo ? <>
@@ -46,9 +48,10 @@ function UploadTile({ role, label, photo, review, onFile, onRemove }: {
       <label className={`upload-cover ${photo ? "replace-cover" : ""}`} htmlFor={`upload-${role}`} aria-label={`${photo ? "Replace" : "Upload"} ${name} portrait`}>
         <span className="sr-only">{photo ? "Replace" : "Upload"} {name} portrait</span>
       </label>
-      <input id={`upload-${role}`} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" aria-label={`${name} photo, JPG PNG or WebP, maximum 10 MB`} onChange={(event) => { const file = event.target.files?.[0]; if (file) onFile(role, file); event.target.value = ""; }} />
+      <input id={`upload-${role}`} aria-describedby={descriptionId} type="file" className="sr-only" accept="image/jpeg,image/png,image/webp" aria-label={`${name} photo, JPG PNG or WebP, maximum 10 MB`} onChange={(event) => { const file = event.target.files?.[0]; if (file) onFile(role, file); event.target.value = ""; }} />
     </div>
   );
+  return description ? <div className="upload-role-card">{tile}<p id={descriptionId} className="upload-role-description"><strong>Photo {Number(number)} · {name}</strong><span>{description}</span></p></div> : tile;
 }
 
 
@@ -407,7 +410,7 @@ export function Generator({ templateId = DEFAULT_TEMPLATE, initialPrices = [] }:
           <div><strong>{template.durationSeconds}-second AI video</strong><p>Fixed duration for both 480p and 720p. Choose your quality below.</p></div>
         </div>}
         <div className="tool-label"><span>YOUR CHARACTERS</span><span>JPG, PNG OR WEBP · MAX 10 MB EACH</span></div>
-        <div className="upload-grid"><UploadTile label={template.roles[0]} role="zombie" photo={zombie} review={reviews.zombie} onFile={selectPhoto} onRemove={removePhoto}/><UploadTile label={template.roles[1]} role="survivor" photo={survivor} review={reviews.survivor} onFile={selectPhoto} onRemove={removePhoto}/></div>
+        <div className="upload-grid"><UploadTile label={template.roles[0]} description={template.roleDescriptions?.[0]} role="zombie" photo={zombie} review={reviews.zombie} onFile={selectPhoto} onRemove={removePhoto}/><UploadTile label={template.roles[1]} description={template.roleDescriptions?.[1]} role="survivor" photo={survivor} review={reviews.survivor} onFile={selectPhoto} onRemove={removePhoto}/></div>
         <p className="upload-hint"><strong>{template.instructions}</strong> Each photo is sent for AI safety screening as soon as you select it; replace any photo that fails before generating. The server checks both again before sending approved photos to the video provider. Use consenting adult portraits only; AI cannot verify age or consent with certainty.</p>
         {(reviews.zombie.status !== "idle" || reviews.survivor.status !== "idle") && <div className="review-summary" role="status" aria-live="polite">{(["zombie", "survivor"] as const).map((role, index) => <p key={role}><strong>Photo {index + 1}:</strong> {reviews[role].status === "checking" ? "Checking with AI…" : reviews[role].status === "approved" ? "Passed AI safety check" : reviews[role].status === "rejected" ? reviews[role].error : "Not selected"}</p>)}</div>}
         <fieldset className="resolution-field"><legend>Video quality{templateId === "tiptoeing-in-my-jordans" ? ` · ${template.durationSeconds}s video` : ""}</legend><div className="resolution-options">{(["480p", "720p"] as const).map(value => <label key={value} className={resolution === value ? "selected" : ""}><input type="radio" name="resolution" value={value} checked={resolution === value} onChange={() => setResolution(value)} disabled={busy || !prices.some(price => price.resolution === value && price.purchasable)}/>{value}{templateId === "tiptoeing-in-my-jordans" ? ` · ${template.durationSeconds}s` : ""} {prices.find(price => price.resolution === value) ? money(prices.find(price => price.resolution === value)!.amount_minor) : ""}</label>)}</div><small>{template.durationSeconds} seconds · One video per purchase · No subscription.</small></fieldset>

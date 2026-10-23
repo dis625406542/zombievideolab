@@ -6,3 +6,33 @@ export const TIPTOEING_STORYBOARD_V3 = TIPTOEING_STORYBOARD_V2.replace(
   "Generate a silent video. Do not reproduce the original song, lyrics or another licensed soundtrack. Visual storytelling only.",
   "Generate native background music together with the video. Listen to the attached reference video's audio and use its approximate tempo, rhythmic groove, energy, mood and instrumentation as guidance for a new, similar instrumental backing track. Keep the music audible and continuous throughout the 15-second output. Coordinate alternating tiptoe steps, weight shifts, gestures and shot transitions with the musical beat while preserving the ordered visual storyboard and natural movement. Aim for a shared musical pulse rather than forced or unnatural exact beat matching. Do not copy the original melody, lyrics, vocals or sound recording; do not add spoken dialogue. Do not produce a silent output."
 );
+
+// V4 adds the missing opening reaction cuts. V2/V3 remain executable for old orders.
+export const TIPTOEING_STORYBOARD_V4 = TIPTOEING_STORYBOARD_V3.replace(
+  /\*\*0\u20132 seconds[\s\S]*?(?=\*\*6\u20139 seconds)/,
+  `**0–1.8 seconds — The Dancer's Shushing Gesture**
+
+The dancer from Image 1 faces the seated observer from Image 2. Establish their positions briefly, then use a close-up of the dancer raising one index finger to the lips for a playful shushing gesture. Keep the dancer's eyebrows raised and eyes directed toward the observer. The observer stays seated. Only the dancer performs the shushing gesture.
+
+**1.8–2.5 seconds — The Observer Covers Their Mouth**
+
+Make a clear cut to a facial close-up of the seated observer from Image 2. The observer widens their eyes in comic surprise and brings one hand over their own mouth, with the fingers naturally resting across the lips. Show the completed hand-over-mouth reaction clearly for a brief beat. This is the observer's reaction, not another shushing gesture by the dancer. Keep the observer seated and preserve their own face and clothing.
+
+**2.5–3.1 seconds — The Dancer's Knowing Smile**
+
+Cut back to a facial close-up of the dancer from Image 1. The dancer's shushing hand is now lowered, leaving the face unobstructed. Show a distinct cheeky, knowing smile with slightly raised eyebrows and direct eye contact toward the observer. Do not substitute a wide dance shot for this facial reaction.
+
+**3.1–3.9 seconds — The Dancer's Left Hand Strokes the Observer's Hair**
+
+Cut back to a facial close-up of the seated observer from Image 2, matching the reference video's hair-stroking interaction. The observer lowers the hand that covered their mouth and remains seated with a surprised, slightly amused expression. The dancer from Image 1 reaches into the shot with their own LEFT hand and gently strokes or smooths the hair on the side/top of the observer's head once. The touching hand belongs to the DANCER, and the hair being touched belongs to the OBSERVER: this is an interaction between the two people, not a self-touch gesture. Use the dancer's anatomical left hand, not a mirrored camera-side instruction. The observer does not raise their own hand to touch their hair. Preserve the observer's uploaded hairstyle; for short hair, show a small gentle stroke over the existing hair without inventing long hair. Keep the observer's face visible and the dancer's reaching arm spatially connected to the dancer; fingers and hand anatomy must remain natural.
+
+These are four distinct opening shots in this order: DANCER shush → OBSERVER hand over mouth → DANCER smiling close-up → DANCER's LEFT hand strokes OBSERVER's hair. Do not merge the two characters, swap the roles, show both gestures at once or postpone these reaction shots until the ending. The seated observer never becomes the dancer. Keep the background music continuous across these cuts.
+
+**3.9–6 seconds — Preparing to Dance**
+
+Return to a medium-wide or full-body shot. The dancer bends both knees slightly, lowers the center of gravity, and extends both arms sideways like wings to maintain balance.
+
+The shoulders remain relaxed, the torso leans forward slightly, and the facial expression stays playful and mischievous. Both legs and feet must be visible before the main dance begins. Do not extend the opening close-ups into the main footwork sequence.
+
+`
+);

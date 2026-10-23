@@ -100,3 +100,21 @@
 .tiptoe-preview-switch button[aria-pressed="true"]{color:#fff;background:#51495e;box-shadow:0 1px 4px #0003}
 .tiptoe-preview-switch button:focus-visible{outline:2px solid #d4b9f4;outline-offset:3px}
 @media(max-width:480px){.tiptoe-page .tiptoe-preview-toolbar{gap:8px}.tiptoe-preview-switch button{min-height:38px;padding:8px 10px}.tiptoe-page .tiptoe-preview-toolbar .demo-format-tags{margin-left:auto}}
+
+/* P0: explain the remake, roles and deliverable beside the actual tool. */
+.tiptoe-quick-facts{list-style:none;display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:20px 0 0;padding:0}
+.tiptoe-quick-facts li{padding:7px 11px;border:1px solid #45414d;border-radius:20px;background:#27252b;color:#ddd8e6;font-size:11px;line-height:1.5}
+.tiptoe-page .upload-grid{grid-template-columns:repeat(2,minmax(0,1fr));align-items:start}
+.tiptoe-page .upload-role-card{min-width:0}
+.tiptoe-page .upload-role-description{margin:10px 0 0;font-size:11px;line-height:1.65;color:#bbb6c6;overflow-wrap:anywhere}
+.tiptoe-page .upload-role-description strong{display:block;color:#eeeaf5;font-size:12px;margin-bottom:4px}
+.tiptoe-page .upload-role-description span{display:block}
+.tiptoe-tool-summary{margin-top:18px;padding:22px;border:1px solid #45414d;border-radius:12px;background:linear-gradient(145deg,#26242b,#1d1c20)}
+.tiptoe-tool-summary ol{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin:0;padding:0}
+.tiptoe-tool-summary li{display:flex;align-items:flex-start;gap:12px;min-width:0}
+.tiptoe-tool-summary li>span{display:grid;place-items:center;flex-shrink:0;width:28px;height:28px;border:1px solid #5d566a;border-radius:8px;color:#ddd2ed;font-size:10px;font-weight:700}
+.tiptoe-tool-summary strong{display:block;font-size:12px;line-height:1.6;color:#f0ecf6}
+.tiptoe-tool-summary li p{margin:7px 0 0;font-size:11px;line-height:1.8;color:#bbb6c6}
+.tiptoe-tool-summary .tiptoe-summary-note{margin:18px 0 0;padding-top:14px;border-top:1px solid #45414d;font-size:11px;line-height:1.8;color:#aaa5b5}
+@media(max-width:800px){.tiptoe-tool-summary ol{grid-template-columns:1fr;gap:18px}.tiptoe-tool-summary{padding:20px}}
+@media(max-width:480px){.tiptoe-quick-facts{gap:6px}.tiptoe-quick-facts li{padding:6px 9px;font-size:10px}.tiptoe-page .upload-role-description{font-size:10px}.tiptoe-page .upload-role-description strong{font-size:11px}.tiptoe-tool-summary{padding:17px 14px}}
