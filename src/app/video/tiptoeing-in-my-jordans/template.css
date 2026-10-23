@@ -91,3 +91,12 @@
 .billing-retry{font:inherit;color:inherit;background:transparent;border:0;padding:3px;text-decoration:underline;cursor:pointer}
 @media(max-width:800px){.tiptoe-facts-grid{grid-template-columns:1fr}}
 @media(max-width:480px){.tiptoe-facts-card{padding:19px 15px}.tiptoe-facts-table{font-size:12px}.tiptoe-facts-table th,.tiptoe-facts-table td{padding:12px 3px}}
+
+/* Compact public-preview selectors; reference remains the initial muted preview. */
+.tiptoe-page .tiptoe-preview-toolbar{height:auto;min-height:54px;gap:10px;flex-wrap:wrap;padding:10px 14px}
+.tiptoe-preview-switch{display:inline-flex;gap:3px;padding:3px;border:1px solid #48444f;border-radius:9px;background:#202024}
+.tiptoe-preview-switch button{appearance:none;border:0;border-radius:6px;padding:8px 11px;background:transparent;color:#bdb8c8;font:inherit;font-size:11px;font-weight:600;line-height:1.2;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.tiptoe-preview-switch button:hover{color:#fff;background:#35323c}
+.tiptoe-preview-switch button[aria-pressed="true"]{color:#fff;background:#51495e;box-shadow:0 1px 4px #0003}
+.tiptoe-preview-switch button:focus-visible{outline:2px solid #d4b9f4;outline-offset:3px}
+@media(max-width:480px){.tiptoe-page .tiptoe-preview-toolbar{gap:8px}.tiptoe-preview-switch button{min-height:38px;padding:8px 10px}.tiptoe-page .tiptoe-preview-toolbar .demo-format-tags{margin-left:auto}}

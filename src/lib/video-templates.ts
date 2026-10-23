@@ -13,14 +13,14 @@ export const VIDEO_TEMPLATES = {
     hasDemo: true,
   },
   "tiptoeing-in-my-jordans": {
-    id: "tiptoeing-in-my-jordans", productId: "tiptoeing-in-my-jordans", path: "/video/tiptoeing-in-my-jordans", promptVersion: "tiptoeing-v2", durationSeconds: 15,
+    id: "tiptoeing-in-my-jordans", productId: "tiptoeing-in-my-jordans", path: "/video/tiptoeing-in-my-jordans", promptVersion: "tiptoeing-v3", durationSeconds: 15,
     title: "Tiptoeing In My Jordans AI video generator", overline: "TWO PHOTOS. ONE PLAYFUL MOMENT.",
     heading: "Bring your photos", emphasis: "into motion.",
     intro: "Create a 15-second Tiptoeing In My Jordans video from two adult portraits. Pay once. No account needed.",
     roles: ["The dancer", "Seated observer"],
     instructions: "Photo 1: dancer. Photo 2: seated observer. Roles follow upload order, not gender. Use clear photos with one person in each.",
     purchase: "One 15-second, reference-guided tiptoeing video using your two approved portraits.",
-    previewHeading: "YOUR TIPTOE MOMENT", previewTitle: "Watch a real AI-generated result",
+    previewHeading: "YOUR TIPTOE MOMENT", previewTitle: "Watch the reference or a real result",
     hasDemo: false,
   },
 } as const;
@@ -36,8 +36,9 @@ export type PromptContext = { templateId: TemplateId; promptVersion: string };
 export function videoSpec(context?: PromptContext) {
   const template = videoTemplate(context?.templateId ?? DEFAULT_TEMPLATE);
   const version = context?.promptVersion ?? template.promptVersion;
-  if (template.id === "zombie-couple" && version === "zombie-v1") return { durationSeconds: 8, referenceVideo: false } as const;
-  if (template.id === "tiptoeing-in-my-jordans" && version === "tiptoeing-v1") return { durationSeconds: 8, referenceVideo: false } as const;
-  if (template.id === "tiptoeing-in-my-jordans" && version === "tiptoeing-v2") return { durationSeconds: 15, referenceVideo: true } as const;
+  if (template.id === "zombie-couple" && version === "zombie-v1") return { durationSeconds: 8, referenceVideo: false, generateAudio: false } as const;
+  if (template.id === "tiptoeing-in-my-jordans" && version === "tiptoeing-v1") return { durationSeconds: 8, referenceVideo: false, generateAudio: false } as const;
+  if (template.id === "tiptoeing-in-my-jordans" && version === "tiptoeing-v2") return { durationSeconds: 15, referenceVideo: true, generateAudio: false } as const;
+  if (template.id === "tiptoeing-in-my-jordans" && version === "tiptoeing-v3") return { durationSeconds: 15, referenceVideo: true, generateAudio: true } as const;
   throw new Error("This purchase uses an unavailable prompt version. Contact support; do not pay again.");
 }

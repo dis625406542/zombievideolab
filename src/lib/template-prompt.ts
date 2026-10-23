@@ -1,4 +1,4 @@
-import { TIPTOEING_STORYBOARD_V2 } from "./tiptoeing-storyboard";
+import { TIPTOEING_STORYBOARD_V2, TIPTOEING_STORYBOARD_V3 } from "./tiptoeing-storyboard";
 import { buildVideoPrompt, type PromptScenario } from "./video-prompt";
 import { DEFAULT_TEMPLATE, videoSpec, videoTemplate, type PromptContext } from "./video-templates";
 
@@ -10,14 +10,15 @@ export function templatePrompt(scenario: PromptScenario, aspectRatio: "9:16" | "
   if (template.id === DEFAULT_TEMPLATE) return buildVideoPrompt(scenario, aspectRatio, tagged);
   const first = tagged ? "@Image1" : "Image 1";
   const second = tagged ? "@Image2" : "Image 2";
-  if (version === "tiptoeing-v2") {
+  if (version === "tiptoeing-v2" || version === "tiptoeing-v3") {
     const video = tagged ? "@Video1" : "the attached reference video";
-    const storyboard = TIPTOEING_STORYBOARD_V2.replaceAll("Image 1", first).replaceAll("Image 2", second);
+    const withAudio = version === "tiptoeing-v3";
+    const storyboard = (withAudio ? TIPTOEING_STORYBOARD_V3 : TIPTOEING_STORYBOARD_V2).replaceAll("Image 1", first).replaceAll("Image 2", second);
     return `${storyboard}
 
 ATTACHED REFERENCES: ${first} is the dancer; ${second} is the seated observer; ${video} guides movement and shot timing, NOT the identity or clothing of either uploaded person. Never copy the reference video's actors' faces or outfits.
 OUTPUT: exactly 15 seconds, ${aspectRatio === "16:9" ? "16:9 landscape" : "9:16 portrait"}. Adapt framing to this aspect ratio while keeping both feet visible during the full-body dance shots. Keep the observer seated beside the dancer and show the dedicated footwork close-up.
-SAFETY: exactly two consenting, fully clothed adults. Nonsexual, nonviolent entertainment only. No minors, nudity, sexualized poses, gore, injury, threats, dangerous stunts or hateful content. Do not add brand logos, text or watermarks. Silent video; no soundtrack.
+SAFETY: exactly two consenting, fully clothed adults. Nonsexual, nonviolent entertainment only. No minors, nudity, sexualized poses, gore, injury, threats, dangerous stunts or hateful content. Do not add brand logos, text or watermarks. ${withAudio ? "Include model-generated instrumental music guided by the reference audio; never copy the original recording, melody, lyrics or vocals." : "Silent video; no soundtrack."}
 Generation fidelity is guided by the attached references; prioritize the ordered storyboard and identity consistency.`;
   }
   return `Create one coherent 8-second, photorealistic, playful dance-interaction video inspired by the Tiptoeing In My Jordans trend, with exactly two consenting adult characters.

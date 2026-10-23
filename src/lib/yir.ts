@@ -64,7 +64,7 @@ export function makeYirRequest(ids: string[], resolution: Resolution, aspectRati
         ...(spec.referenceVideo ? [{ role: "reference_video", file_id: fileId(referenceVideo) }] : []),
       ],
     },
-    parameters: { duration: spec.durationSeconds, resolution, aspect_ratio: aspectRatio, ...(spec.referenceVideo ? { generate_audio: false } : {}) },
+    parameters: { duration: spec.durationSeconds, resolution, aspect_ratio: aspectRatio, ...(spec.referenceVideo ? { generate_audio: spec.generateAudio } : {}) },
     routing: { preference: "cost", fallback: true },
   };
 }
@@ -126,6 +126,7 @@ export async function submitYirVideo(ids: string[], resolution: Resolution, idem
   if (notices.some(item => object(item).disposition === "ignored")) throw new Error("YIR cannot honor all requested video parameters.");
   const normalized = object(quote.parameters);
   if (normalized.duration !== input.parameters.duration || normalized.resolution !== resolution || normalized.aspect_ratio !== aspectRatio) throw new Error("YIR cannot honor the requested duration, resolution and aspect ratio.");
+  if (input.parameters.generate_audio === true && normalized.generate_audio !== true) throw new Error("YIR cannot honor music generation for this request. No video was submitted.");
   const estimate = quote.expected_amount;
   if (typeof estimate !== "string" || !/^\d+(?:\.\d+)?$/.test(estimate)) throw new Error("YIR quote is unavailable.");
   // No local cost cap: omit the optional max_cost field. Provider charges apply.

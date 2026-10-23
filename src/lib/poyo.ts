@@ -23,7 +23,7 @@ export function makeSeedanceInput(urls: string[], resolution: Resolution, aspect
   if (resolution !== "480p" && resolution !== "720p") throw new Error("Unsupported resolution.");
   if (urls.length !== 2) throw new Error("Two portraits are required.");
   if (aspectRatio !== "9:16" && aspectRatio !== "16:9") throw new Error("Unsupported aspect ratio.");
-  return { prompt: templatePrompt(scenario, aspectRatio, true, context), reference_image_urls: urls.map(httpsUrl), ...(spec.referenceVideo ? { reference_video_urls: [httpsUrl(referenceVideo)] } : {}), duration: spec.durationSeconds, resolution, aspect_ratio: aspectRatio, generate_audio: false };
+  return { prompt: templatePrompt(scenario, aspectRatio, true, context), reference_image_urls: urls.map(httpsUrl), ...(spec.referenceVideo ? { reference_video_urls: [httpsUrl(referenceVideo)] } : {}), duration: spec.durationSeconds, resolution, aspect_ratio: aspectRatio, generate_audio: spec.generateAudio };
 }
 export function parseUpload(response: unknown): string {
   const body = record(response);
