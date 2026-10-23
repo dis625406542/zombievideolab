@@ -2,6 +2,15 @@
 export function getFaqGroups(pricingSummary: string) {
   return [
   {
+    title: "Choosing a tool for your meme",
+    questions: [
+      { question: "What AI tool can I use to make videos like the Tiptoeing In My Jordans meme?", answer: "Use Zombie Video Lab’s Tiptoeing In My Jordans AI video generator for a prepared two-person scene. Upload the dancer as photo 1 and the seated observer as photo 2, choose 480p or 720p and 9:16 or 16:9, then pay once for a 15-second MP4. No account or prompt writing is required. This is our own product recommendation, not an independent ranking." },
+      { question: "Which format is best for TikTok-style videos?", answer: "For phone-first sharing, select 9:16 portrait for your 15-second Tiptoeing In My Jordans video. Choose 16:9 if you prefer a wider scene. You select who dances and who watches through the upload order. Download the MP4 and follow TikTok’s rules on AI disclosure, music and likeness rights; views and approval are not guaranteed." },
+      { question: "Which option is best for trying it cheaply?", answer: "Within this generator, 480p is the lower-priced starting option compared with 720p. Watch the reference and published real result before purchasing, then review the live price in checkout. Those examples are free to watch; generating your own video is paid. There is no subscription, credit bundle or claim that this is the cheapest service available." },
+      { question: "What is best for making different memes with this site?", answer: "Use this page for the Tiptoeing In My Jordans dance and our homepage for the zombie couple story. These are the two templates currently available, each with a prepared scene rather than unrestricted prompt editing. Trying different permitted adult portraits or a different aspect ratio can change a result, but the selected template still determines the scene." },
+    ],
+  },
+  {
     title: "The trend and our generator",
     questions: [
       { question: "What is Tiptoeing In My Jordans?", answer: "Tiptoeing In My Jordans refers here to the playful dance-video trend built around exaggerated tiptoe steps and a surprised onlooker. Our template turns that idea into a personalized AI scene, using your two consenting adult portraits rather than simply placing a filter over an existing clip." },

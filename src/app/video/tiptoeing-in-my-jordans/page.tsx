@@ -9,8 +9,9 @@ import { getFaqGroups } from "./faq";
 import "./template.css";
 
 const path = "/video/tiptoeing-in-my-jordans";
-const title = "Tiptoeing In My Jordans AI Video Generator";
-const description = "Remake the Tiptoeing In My Jordans meme with two photos: choose who dances and who watches. Pay once for a 15-second AI video. No account needed.";
+const toolName = "Tiptoeing In My Jordans AI Video Generator";
+const title = `${toolName} | best for TikTok-style videos`;
+const description = "Compare what’s best for TikTok-style videos, best for trying it cheaply and best for making different memes. Two photos, 15 seconds, one-time payment, no login.";
 export const metadata: Metadata = {
   title, description,
   alternates: { canonical: path },
@@ -52,7 +53,7 @@ export default async function TiptoeingPage() {
       uploadDate: "2026-10-23T09:30:12+08:00", duration: "PT15S", width: 854, height: 480,
     },
     { "@context": "https://schema.org", "@type": "SoftwareApplication",
-      name: title, applicationCategory: "MultimediaApplication", operatingSystem: "Web browser", url: `${SITE_URL}${path}`,
+      name: toolName, applicationCategory: "MultimediaApplication", operatingSystem: "Web browser", url: `${SITE_URL}${path}`,
       description: "Make your own version of the Tiptoeing In My Jordans meme: photo 1 dances, photo 2 watches and reacts. Create a 15-second AI video with requested AI-created music. Pay once, no account. Download your private MP4 within three days.",
       ...(prices.length ? { offers: prices.map(price => ({ "@type": "Offer", name: `${price.resolution} · 15-second video`, price: (price.amount_minor / 100).toFixed(2), priceCurrency: price.currency, url: `${SITE_URL}${path}#generator` })) } : {}),
     },
@@ -60,12 +61,12 @@ export default async function TiptoeingPage() {
   ];
   return <div className="page-shell tiptoe-page">
     <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }} />
-    <header className="site-header"><div className="nav-content"><Brand/><nav className="nav-links" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#questions">FAQ</a><a className="nav-action" href="#generator">Create video <ArrowRight size={14}/></a></nav></div></header>
+    <header className="site-header"><div className="nav-content"><Brand/><nav className="nav-links" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#questions">FAQ</a><a className="public-blog-link" href="/blog">Blog</a><a className="nav-action" href="#generator">Create video <ArrowRight size={14}/></a></nav></div></header>
     <main>
       <div className="announcement">A NEW MOVE. YOUR TWO CHARACTERS. <span className="announcement-flame">✦</span> PAY ONCE, CREATE ONCE.</div>
       <section className="hero wrapper" aria-labelledby="main-heading">
         <nav className="tiptoe-breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Tiptoeing In My Jordans</span></nav>
-        <div className="hero-heading"><p className="eyebrow">TWO PHOTOS. A LITTLE FOOTWORK.</p><h1 id="main-heading">Tiptoeing In My Jordans <em>AI Video Generator</em></h1><p className="hero-subtitle">Make your own version of the Tiptoeing In My Jordans meme with two photos. Choose who dances and who watches — our ready-made template guides the scene, reactions and footwork.</p><ul className="tiptoe-quick-facts" aria-label="Video and purchase essentials"><li>15-second video</li><li>No account needed</li><li>One-time payment</li><li>MP4 download</li></ul></div>
+        <div className="hero-heading"><p className="eyebrow">TWO PHOTOS. A LITTLE FOOTWORK.</p><h1 id="main-heading">Tiptoeing In My Jordans <em>AI Video Generator</em></h1><p className="hero-subtitle">Make your own version of the Tiptoeing In My Jordans meme with two photos. Choose who dances and who watches — our ready-made template guides the scene, reactions and footwork. Choose 9:16 for TikTok-style videos or 16:9 for a wider scene.</p><ul className="tiptoe-quick-facts" aria-label="Video and purchase essentials"><li>15-second video</li><li>No account needed</li><li>One-time payment</li><li>MP4 download</li></ul></div>
         <Generator templateId="tiptoeing-in-my-jordans" initialPrices={prices.map(({ resolution, amount_minor, currency, name, purchasable }) => ({ resolution, amount_minor, currency, name, purchasable }))} />
         <div className="tiptoe-tool-summary" aria-label="From two photos to your video">
           <ol>
@@ -136,7 +137,8 @@ export default async function TiptoeingPage() {
       </section>
       <section id="questions" className="faq-section wrapper"><div className="faq-side"><p className="eyebrow">BEFORE YOUR FIRST MOVE</p><h2>Tiptoeing In My Jordans <em>questions, answered.</em></h2><p>Practical answers about the Tiptoeing In My Jordans generator, photo roles, payments and keeping your video.</p><a className="tiptoe-text-link" href="/contact">Need help? Contact us <ArrowRight size={15}/></a></div><div className="faq-list">{faqGroups.map(group => <section key={group.title} className="tiptoe-faq-group" aria-label={group.title}><h3>{group.title}</h3>{group.questions.map(({ question, answer }) => <details key={question} className="faq-item"><summary>{question}<span className="faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</section>)}<Cta label="Try the Tiptoeing In My Jordans generator"/></div></section>
       <RelatedVideoGenerators currentTemplate="tiptoeing-in-my-jordans" />
+        <aside className="guide-callout wrapper" aria-label="Meme video guide"><div><p className="eyebrow">FROM THE BLOG</p><h2>Which AI tool can make the Tiptoeing In My Jordans meme?</h2><p>A practical guide to photo roles, TikTok formats, one-time payment and MP4 downloads.</p></div><a href="/blog/what-ai-tool-can-make-tiptoeing-in-my-jordans-videos">Read the guide <ArrowRight size={17} aria-hidden="true" /></a></aside>
     </main>
-    <footer className="footer"><div className="wrapper footer-inner"><div><Brand/><p>Original AI moments. Made for entertainment.</p></div><nav className="footer-nav" aria-label="Footer"><a href="#generator">Create video</a><a href="/about">About</a><a href="/security">Security</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms</a><a href="/acceptable-use">Acceptable Use</a><a href="/refund-policy">Refund &amp; Delivery</a><a href="/contact">Contact</a></nav><div className="footer-bottom"><span>© {new Date().getFullYear()} Zombie Video Lab.</span><span>Independent template · Not affiliated with Nike or Jordan</span></div></div></footer>
+    <footer className="footer"><div className="wrapper footer-inner"><div><Brand/><p>Original AI moments. Made for entertainment.</p></div><nav className="footer-nav" aria-label="Footer"><a href="#generator">Create video</a><a href="/blog">Blog</a><a href="/about">About</a><a href="/security">Security</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms</a><a href="/acceptable-use">Acceptable Use</a><a href="/refund-policy">Refund &amp; Delivery</a><a href="/contact">Contact</a></nav><div className="footer-bottom"><span>© {new Date().getFullYear()} Zombie Video Lab.</span><span>Independent template · Not affiliated with Nike or Jordan</span></div></div></footer>
   </div>;
 }

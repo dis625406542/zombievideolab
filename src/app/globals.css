@@ -274,3 +274,11 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
 .related-generator-copy>p{margin:0 0 22px;color:#bdbdc6;font-size:13px;line-height:1.85}
 .related-generator-link{display:flex;align-items:center;gap:10px;margin-top:auto;font-size:12px;font-weight:700;color:#dedeea;min-height:28px}
 @media(max-width:650px){.related-generators{padding-block:48px 58px}.related-generators-grid{grid-template-columns:1fr;gap:20px}.related-generators-heading{text-align:left;margin-bottom:26px}.related-generators-heading>p:last-child{font-size:13px}.related-generator-copy{padding:20px}.related-generator-copy h3{font-size:20px}}
+
+/* Keep the editorial entry visible in the mobile tool navigation. */
+.guide-callout{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-block:20px 60px;padding:28px;border:1px solid var(--line);border-radius:12px;background:#191919}
+.guide-callout h2{font-size:24px;line-height:1.3;margin:10px 0;color:var(--text)}
+.guide-callout p:not(.eyebrow){color:var(--muted);font-size:14px;line-height:1.7;margin:0}
+.guide-callout>a{display:inline-flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid #75757f;padding-block:8px;font-size:14px}
+@media(max-width:700px){.guide-callout{flex-direction:column;align-items:flex-start;padding:22px}.nav-links>a.public-blog-link{display:inline-flex;margin-right:14px}.nav-content:has(.public-blog-link) .nav-action{padding:10px;font-size:11px;gap:5px}}
+@media(max-width:340px){.nav-content:has(.public-blog-link) .nav-action{display:none}.nav-links>a.public-blog-link{margin-right:0}}
