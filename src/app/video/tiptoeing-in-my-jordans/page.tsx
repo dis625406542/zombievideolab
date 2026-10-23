@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
+import { connection } from "next/server";
+import { catalog, type Price } from "@/lib/billing-catalog";
 import { ArrowRight, Footprints, ImagePlus, ShieldCheck, Sparkles, CreditCard, Smartphone, Download, Clock3 } from "lucide-react";
 import { Generator } from "@/components/generator";
+import { RelatedVideoGenerators } from "@/components/related-video-generators";
 import { SITE_URL } from "@/lib/site";
-import { faqGroups, questions } from "./faq";
+import { getFaqGroups } from "./faq";
 import "./template.css";
 
 const path = "/video/tiptoeing-in-my-jordans";
@@ -24,12 +27,35 @@ function Brand() {
   return <a className="brand" href="/" aria-label="Zombie Video Lab home"><span className="brand-mark" aria-hidden="true"><span className="brand-pulse">✳</span></span><span>ZOMBIE<span className="brand-light">VIDEO</span>LAB<span className="brand-dot">.</span></span></a>;
 }
 
-export default function TiptoeingPage() {
+export default async function TiptoeingPage() {
+  // Query at request time: a later database price change must not leave stale build-time copy.
+  await connection();
+  let prices: Price[] = [];
+  try { prices = (await catalog("tiptoeing-in-my-jordans")).filter(price => price.duration_seconds === 15); }
+  catch { /* Keep the information page usable; never fabricate a price when the catalog is down. */ }
+  const formatPrice = (price: Price) => new Intl.NumberFormat("en-US", { style: "currency", currency: price.currency }).format(price.amount_minor / 100);
+  const pricingSummary = prices.length
+    ? prices.map(price => `${price.resolution}: ${formatPrice(price)} USD`).join("; ") + "."
+    : "Live pricing is temporarily unavailable. Please retry the checkout check before purchasing.";
+  const faqGroups = getFaqGroups(pricingSummary);
+  const questions = faqGroups.flatMap(group => [...group.questions]);
   const structuredData = [
     { "@context": "https://schema.org", "@type": "BreadcrumbList", itemListElement: [
       { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
       { "@type": "ListItem", position: 2, name: "Tiptoeing In My Jordans", item: `${SITE_URL}${path}` },
     ] },
+    { "@context": "https://schema.org", "@type": "VideoObject",
+      name: "Tiptoeing In My Jordans — real AI-generated example",
+      description: "Actual output from two photos using this template. 480p, 15 seconds, 16:9, silent. Results vary; no original song is included.",
+      thumbnailUrl: `${SITE_URL}/tiptoeing-example-poster.webp`,
+      contentUrl: `${SITE_URL}/tiptoeing-example-v1.mp4`,
+      uploadDate: "2026-10-23T09:30:12+08:00", duration: "PT15S", width: 854, height: 480,
+    },
+    { "@context": "https://schema.org", "@type": "SoftwareApplication",
+      name: title, applicationCategory: "MultimediaApplication", operatingSystem: "Web browser", url: `${SITE_URL}${path}`,
+      description: "Create one 15-second silent AI dance video from two adult portraits. No login or subscription. Download your private MP4 within three days.",
+      ...(prices.length ? { offers: prices.map(price => ({ "@type": "Offer", name: `${price.resolution} · 15-second video`, price: (price.amount_minor / 100).toFixed(2), priceCurrency: price.currency, url: `${SITE_URL}${path}#generator` })) } : {}),
+    },
     { "@context": "https://schema.org", "@type": "FAQPage", mainEntity: questions.map(({ question, answer }) => ({ "@type": "Question", name: question, acceptedAnswer: { "@type": "Answer", text: answer } })) },
   ];
   return <div className="page-shell tiptoe-page">
@@ -40,10 +66,19 @@ export default function TiptoeingPage() {
       <section className="hero wrapper" aria-labelledby="main-heading">
         <nav className="tiptoe-breadcrumb" aria-label="Breadcrumb"><a href="/">Home</a><span aria-hidden="true">/</span><span aria-current="page">Tiptoeing In My Jordans</span></nav>
         <div className="hero-heading"><p className="eyebrow">TWO PHOTOS. A LITTLE FOOTWORK.</p><h1 id="main-heading">Tiptoeing In My Jordans <em>AI Video Generator</em></h1><p className="hero-subtitle">Create a 15-second Tiptoeing In My Jordans video from your two photos. One dancer, one seated observer and a playful, reference-guided scene. Choose your quality, pay once, and let the scene unfold.</p></div>
-        <Generator templateId="tiptoeing-in-my-jordans" />
+        <Generator templateId="tiptoeing-in-my-jordans" initialPrices={prices.map(({ resolution, amount_minor, currency, name, purchasable }) => ({ resolution, amount_minor, currency, name, purchasable }))} />
         <p className="hero-note"><ShieldCheck size={16} aria-hidden="true"/> Photos are screened before generation. No subscription. No account required.</p>
       </section>
       <section className="trust-row wrapper" aria-label="Template highlights"><div><ImagePlus size={17}/>Two photo roles</div><div><Footprints size={17}/>Playful footwork</div><div><CreditCard size={17}/>Pay per video</div><div><Smartphone size={17}/>Mobile friendly</div></section>
+      <section className="tiptoe-section wrapper tiptoe-overview" aria-labelledby="tool-facts-heading">
+        <div className="tiptoe-section-title"><p className="eyebrow">WHAT YOU ARE BUYING</p><h2 id="tool-facts-heading">A photo-to-video tool. <em>Not a video editor.</em></h2><p>The Tiptoeing In My Jordans AI video generator on Zombie Video Lab turns two adult portraits into a new dance scene: photo 1 is the dancer and photo 2 is the seated observer. Our prepared storyboard and motion reference guide generation, so you do not need to write a prompt. Zombie Video Lab offers dance and zombie-themed templates; this page makes a dance video, not a zombie transformation.</p></div>
+        <div className="tiptoe-facts-grid">
+          <article className="tiptoe-facts-card"><h3>Price and output at a glance</h3><table className="tiptoe-facts-table"><caption>Live catalog prices in USD · One video per purchase</caption><thead><tr><th scope="col">Quality</th><th scope="col">Length</th><th scope="col">Price</th></tr></thead><tbody>{prices.length ? prices.map(price => <tr key={price.id}><th scope="row">{price.resolution}</th><td>15 seconds</td><td>{formatPrice(price)}</td></tr>) : <tr><td colSpan={3}>Prices could not be loaded. Retry before purchasing.</td></tr>}</tbody></table><p>No subscription, credits or account registration. Choose 9:16 portrait or 16:9 landscape. The final total is shown in checkout.</p></article>
+          <article className="tiptoe-facts-card"><h3>Know before you generate</h3><ul><li><strong>Silent MP4:</strong> no original song, generated soundtrack or music license is included. Add permitted audio in your own editor.</li><li><strong>Real example:</strong> the player above shows an actual 480p, 15-second, 16:9 output. Your selected quality applies to your next order, not the sample.</li><li><strong>AI, not an exact copy:</strong> faces, clothing details, footwear and choreography can differ from your photos and the reference.</li><li><strong>Temporary delivery:</strong> download within 3 days. Your browser remembers access references, not a permanent MP4 copy.</li></ul></article>
+        </div>
+        <p className="tiptoe-sample-provenance">Published October 23, 2026: the site owner’s real generated example is shared with permission. Your private orders are not automatically made public. A downloaded device copy is not subject to the three-day delivery window.</p>
+        <Cta label="Create your own 15-second dance video"/>
+      </section>
       <section id="how-it-works" className="tiptoe-section wrapper">
         <div className="tiptoe-section-title"><p className="eyebrow">FROM PORTRAITS TO A PLAYFUL SCENE</p><h2>How to make a <em>Tiptoeing In My Jordans video.</em></h2><p>The Tiptoeing In My Jordans AI video generator keeps the setup simple. You choose the characters; the template supplies the scene.</p></div>
         <div className="tiptoe-cards tiptoe-steps">
@@ -86,8 +121,13 @@ export default function TiptoeingPage() {
         <div className="tiptoe-format-grid"><article><span className="tiptoe-frame portrait" aria-hidden="true"/><div><h3>9:16 · Vertical</h3><p>A vertical Tiptoeing In My Jordans video for phone-first viewing. The prompt asks for the performer's head and feet to stay visible during the footwork.</p></div></article><article><span className="tiptoe-frame landscape" aria-hidden="true"/><div><h3>16:9 · Landscape</h3><p>A landscape Tiptoeing In My Jordans video gives both characters room side by side. Your chosen ratio is sent to the video provider, not just applied to the player.</p></div></article></div>
         <p className="tiptoe-disclaimer">480p and 720p · 15-second target · MP4 download. This is a trend-inspired visual template, not an exact choreography or original-song reproduction. No licensed soundtrack is included.</p><Cta label="Choose your Tiptoeing In My Jordans format"/>
       </section>
+      <section className="tiptoe-section wrapper" aria-labelledby="choose-workflow-heading">
+        <div className="tiptoe-section-title"><p className="eyebrow">CHOOSE THE RIGHT WORKFLOW</p><h2 id="choose-workflow-heading">AI generation or <em>manual editing?</em></h2><p>Use the Tiptoeing In My Jordans generator for a newly imagined scene with your two photo characters. Use a video editor when exact timing, licensed music or frame-by-frame control matters more.</p></div>
+        <div className="tiptoe-cards tiptoe-steps"><article><h3>Our prepared AI template</h3><p>Two portrait uploads, a prepared storyboard and reference-guided movement. One paid generation, no prompt writing or timeline editing. The model creates new footage, so motion, facial details and shot order may vary. A specific viral clip or exact likeness is not guaranteed.</p></article><article><h3>A manual video editor</h3><p>Better if you already have footage and need to place cuts precisely, choose a platform-approved music track, or synchronize movement to a particular beat. You supply the footage and editing work, and must hold the necessary rights. Our generator does not provide these editing controls or the original song.</p></article></div>
+        <Cta label="Generate a new scene from your photos"/>
+      </section>
       <section id="questions" className="faq-section wrapper"><div className="faq-side"><p className="eyebrow">BEFORE YOUR FIRST MOVE</p><h2>Tiptoeing In My Jordans <em>questions, answered.</em></h2><p>Practical answers about the Tiptoeing In My Jordans generator, photo roles, payments and keeping your video.</p><a className="tiptoe-text-link" href="/contact">Need help? Contact us <ArrowRight size={15}/></a></div><div className="faq-list">{faqGroups.map(group => <section key={group.title} className="tiptoe-faq-group" aria-label={group.title}><h3>{group.title}</h3>{group.questions.map(({ question, answer }) => <details key={question} className="faq-item"><summary>{question}<span className="faq-plus" aria-hidden="true">+</span></summary><p>{answer}</p></details>)}</section>)}<Cta label="Try the Tiptoeing In My Jordans generator"/></div></section>
-      <section className="bottom-cta wrapper"><div><p className="eyebrow">LOOKING FOR A DIFFERENT STORY?</p><h2>From playful moves <em>to zombie love.</em></h2><p>Try our original two-photo zombie couple video template for a fictional, non-graphic reunion scene.</p></div><a href="/#generator" className="bottom-link">Explore zombie videos <ArrowRight size={19}/></a></section>
+      <RelatedVideoGenerators currentTemplate="tiptoeing-in-my-jordans" />
     </main>
     <footer className="footer"><div className="wrapper footer-inner"><div><Brand/><p>Original AI moments. Made for entertainment.</p></div><nav className="footer-nav" aria-label="Footer"><a href="#generator">Create video</a><a href="/about">About</a><a href="/security">Security</a><a href="/privacy">Privacy Policy</a><a href="/terms">Terms</a><a href="/acceptable-use">Acceptable Use</a><a href="/refund-policy">Refund &amp; Delivery</a><a href="/contact">Contact</a></nav><div className="footer-bottom"><span>© {new Date().getFullYear()} Zombie Video Lab.</span><span>Independent template · Not affiliated with Nike or Jordan</span></div></div></footer>
   </div>;

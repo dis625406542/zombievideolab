@@ -20,7 +20,7 @@ export const VIDEO_TEMPLATES = {
     roles: ["The dancer", "Seated observer"],
     instructions: "Photo 1: dancer. Photo 2: seated observer. Roles follow upload order, not gender. Use clear photos with one person in each.",
     purchase: "One 15-second, reference-guided tiptoeing video using your two approved portraits.",
-    previewHeading: "YOUR TIPTOE MOMENT", previewTitle: "Your dance video goes here",
+    previewHeading: "YOUR TIPTOE MOMENT", previewTitle: "Watch a real AI-generated result",
     hasDemo: false,
   },
 } as const;

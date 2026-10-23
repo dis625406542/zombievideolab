@@ -3,7 +3,7 @@
 import { DEFAULT_TEMPLATE, videoTemplate, type TemplateId } from "@/lib/video-templates";
 import { useEffect, useRef, useState } from "react";
 import { DemoVideo } from "@/components/demo-video";
-import { TiptoeingReferenceVideo } from "@/components/tiptoeing-reference-video";
+import { TiptoeingExampleVideo } from "@/components/tiptoeing-example-video";
 import { GeneratedVideo } from "@/components/generated-video";
 import { ArrowRight, Check, Copy, Download, ImagePlus, LockKeyhole, Play, RefreshCw, ShieldCheck, X } from "lucide-react";
 
@@ -78,7 +78,7 @@ async function optimizePhoto(file: File, source: string): Promise<File> {
   throw new Error("This photo is too large after optimization. Please choose a smaller image.");
 }
 
-export function Generator({ templateId = DEFAULT_TEMPLATE }: { templateId?: TemplateId }) {
+export function Generator({ templateId = DEFAULT_TEMPLATE, initialPrices = [] }: { templateId?: TemplateId; initialPrices?: Price[] }) {
   const template = videoTemplate(templateId);
   const suffix = templateId === DEFAULT_TEMPLATE ? "" : `:${templateId}`;
   const SAVED_TASK = `zvl-last-video-task${suffix}`;
@@ -97,7 +97,9 @@ export function Generator({ templateId = DEFAULT_TEMPLATE }: { templateId?: Temp
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [playingFormat, setPlayingFormat] = useState<{ resolution: string; aspectRatio: string; durationSeconds: number } | null>(null);
   const [available, setAvailable] = useState(false);
-  const [prices, setPrices] = useState<Price[]>([]);
+  const [prices, setPrices] = useState<Price[]>(initialPrices);
+  const [billingLoading, setBillingLoading] = useState(true);
+  const [billingFailed, setBillingFailed] = useState(false);
   const [orders, setOrders] = useState<Purchase[]>([]);
   const [testMode, setTestMode] = useState(false);
   const [mockPayment, setMockPayment] = useState(false);
@@ -138,22 +140,31 @@ export function Generator({ templateId = DEFAULT_TEMPLATE }: { templateId?: Temp
   }
 
   async function refreshBilling(code?: string): Promise<Purchase[]> {
-    const response = await fetch(`/api/billing?template=${templateId}${code ? `&code=${encodeURIComponent(code)}` : ""}`, {cache:"no-store"});
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Payment information is unavailable. Do not pay again.");
-    if (data.order) {
-      syncState.current.orders = [data.order, ...syncState.current.orders.filter(order => order.code !== data.order.code)];
-      setOrders(syncState.current.orders);
-      return [data.order];
+    try {
+      const response = await fetch(`/api/billing?template=${templateId}${code ? `&code=${encodeURIComponent(code)}` : ""}`, {cache:"no-store"});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Payment information is unavailable. Do not pay again.");
+      if (data.order) {
+        syncState.current.orders = [data.order, ...syncState.current.orders.filter(order => order.code !== data.order.code)];
+        setOrders(syncState.current.orders);
+        return [data.order];
+      }
+      syncState.current.orders = data.orders ?? [];
+      const nextPrices: Price[] = data.prices ?? [];
+      setPrices(nextPrices); setOrders(syncState.current.orders);
+      setResolution(current => nextPrices.some(price => price.resolution === current && price.purchasable)
+        ? current : nextPrices.find(price => price.purchasable)?.resolution ?? current);
+      setAvailable(data.enabled === true); setTestMode(data.testMode === true); setMockPayment(data.mockPayment === true);
+      if (!code) { setBillingFailed(false); setBillingLoading(false); }
+      return data.orders ?? [];
+    } catch (error) {
+      if (!code) { setAvailable(false); setBillingFailed(true); }
+      throw error;
+    } finally {
+      if (!code) setBillingLoading(false);
     }
-    syncState.current.orders = data.orders ?? [];
-    const nextPrices: Price[] = data.prices ?? [];
-    setPrices(nextPrices); setOrders(syncState.current.orders);
-    setResolution(current => nextPrices.some(price => price.resolution === current && price.purchasable)
-      ? current : nextPrices.find(price => price.purchasable)?.resolution ?? current);
-    setAvailable(data.enabled === true); setTestMode(data.testMode === true); setMockPayment(data.mockPayment === true);
-    return data.orders ?? [];
   }
+
   async function continueOrder(order: Purchase, retry = false) {
     if (submitting.current) return;
     submitting.current = true; setBusy(true);
@@ -406,8 +417,10 @@ export function Generator({ templateId = DEFAULT_TEMPLATE }: { templateId?: Temp
           <span className="format-ratio">{value}</span>
         </label>)}</div></fieldset>
         <label className="consent-row"><input type="checkbox" checked={consent} onChange={event => setConsent(event.target.checked)}/><span className="custom-check" aria-hidden="true"><Check size={12}/></span><span>I am at least 18; both people are adults who consented to this fictional AI video. I have rights to upload these photos to the provider, and my submission follows the Acceptable Use Policy.</span></label>
-        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={busy || stage === "working" || loadingPhoto || reviews.zombie.status === "checking" || reviews.survivor.status === "checking" || !available || !selectedPrice?.purchasable}>{stage === "working" ? "Generating your video…" : busy ? "Opening checkout…" : available ? (templateId === "tiptoeing-in-my-jordans" ? `Generate ${template.durationSeconds}s AI video` : "Generate AI video") : "Checkout unavailable"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> {selectedPrice ? `${money(selectedPrice.amount_minor, selectedPrice.currency)} · One-time payment · No subscription` : "Prices are temporarily unavailable"}</p></div>
-        {!available && prices.length > 0 && <p className="history-help">Checkout for this template is not available yet. No payment can be taken.</p>}
+        <div className="action-area"><button type="button" className="primary-button" onClick={openCheckout} disabled={busy || stage === "working" || loadingPhoto || reviews.zombie.status === "checking" || reviews.survivor.status === "checking" || !available || !selectedPrice?.purchasable}>{stage === "working" ? "Generating your video…" : busy ? "Opening checkout…" : billingLoading ? "Checking checkout…" : billingFailed ? "Checkout check failed" : available ? (templateId === "tiptoeing-in-my-jordans" ? `Generate ${template.durationSeconds}s AI video` : "Generate AI video") : "Checkout unavailable"} {stage !== "working" && <ArrowRight size={19}/>}</button><p className="price-note"><LockKeyhole size={14}/> {selectedPrice ? `${money(selectedPrice.amount_minor, selectedPrice.currency)} · One-time payment · No subscription` : billingLoading ? "Loading prices…" : "Prices could not be loaded. Please retry."}</p></div>
+        {billingFailed && <p className="price-note" role="status">We could not verify checkout. <button type="button" className="billing-retry" onClick={() => { setBillingLoading(true); setBillingFailed(false); void refreshBilling().catch(() => setMessage("Checkout could not be verified. Please try again later; do not pay twice.")); }}>Retry checkout check</button></p>}
+        {templateId === "tiptoeing-in-my-jordans" && <p className="price-note">15-second silent MP4 · No song or soundtrack included · Download within 3 days.</p>}
+        {!billingLoading && !billingFailed && !available && prices.length > 0 && <p className="history-help">Checkout for this template is not available yet. No payment can be taken.</p>}
         <p className="form-message" role="status" aria-live="polite">{message}</p>
         <p className="tool-legal">Selecting a photo sends a resized copy to our AI safety service. Optimized photos are temporarily stored privately for checkout and paid retries, then sent to the video provider only after payment verification and another safety check. When your video is ready, you can return to this browser to play or download it for up to three days after generation. <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/acceptable-use">Prohibited content</a></p>
         <div className="form-footer"><span><ShieldCheck size={16}/> Use only authorized adult photos</span><span>VIDEO GENERATION <span aria-hidden="true">↗</span></span></div>
@@ -439,7 +452,7 @@ export function Generator({ templateId = DEFAULT_TEMPLATE }: { templateId?: Temp
             <div className="result-media" style={{ aspectRatio: (playingFormat?.aspectRatio ?? aspectRatio).replace(":", "/") }}>
               <GeneratedVideo key={videoUrl} src={videoUrl} controls autoPlay playsInline preload="metadata" aria-label={`Your generated ${template.title}`}/>
             </div>
-          </> : templateId === "tiptoeing-in-my-jordans" ? <TiptoeingReferenceVideo /> : <DemoVideo />}
+          </> : templateId === "tiptoeing-in-my-jordans" ? <TiptoeingExampleVideo /> : <DemoVideo />}
         </div>
         {videoUrl && <button type="button" className="back-to-sample" onClick={() => { setVideoUrl(null); setSelectedCode(null); setPlayingFormat(null); setStage("idle"); }}>Watch sample video <Play size={13}/></button>}
         {stage === "working" && <div className="generation-progress" role="progressbar" aria-label="Estimated video generation progress" aria-valuenow={Math.round(visualProgress)} aria-valuemin={0} aria-valuemax={100}>

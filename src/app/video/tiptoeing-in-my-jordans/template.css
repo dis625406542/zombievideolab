@@ -73,3 +73,21 @@
 .tiptoe-walkthrough figcaption h3{font-size:20px;margin:0 0 12px}
 .tiptoe-walkthrough figcaption p{font-size:13px;line-height:1.85;margin:0;color:#bdb9c5}
 @media(max-width:650px){.tiptoe-cards.tiptoe-steps{grid-template-columns:1fr}.tiptoe-walkthrough{gap:20px}.tiptoe-example-heading{padding:13px 15px;font-size:9px;letter-spacing:.05em}.tiptoe-walkthrough figcaption{padding:19px 17px}.tiptoe-walkthrough figcaption h3{font-size:18px}}
+
+/* Crawlable product facts match the live catalog and the generation contract. */
+.tiptoe-facts-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.tiptoe-facts-card{min-width:0;padding:26px;border:1px solid #45424d;border-radius:12px;background:#242327}
+.tiptoe-facts-card h3{margin:0 0 18px;font-size:19px;line-height:1.4}
+.tiptoe-facts-card p,.tiptoe-facts-card li{font-size:13px;line-height:1.85;color:#c3becd}
+.tiptoe-facts-card ul{padding-left:18px;margin:0}
+.tiptoe-facts-card li+li{margin-top:13px}
+.tiptoe-facts-card strong{color:#eeebf4}
+.tiptoe-facts-table{border-collapse:collapse;width:100%;font-size:14px;text-align:left}
+.tiptoe-facts-table caption{caption-side:bottom;text-align:left;font-size:11px;color:#bcb6c8;padding:12px 0}
+.tiptoe-facts-table th,.tiptoe-facts-table td{padding:13px 6px;border-bottom:1px solid #45424d}
+.tiptoe-facts-table thead{color:#c6c0d0;font-size:11px}
+.tiptoe-facts-table td:last-child{font-weight:700;color:#f3eff8;white-space:nowrap}
+.tiptoe-sample-provenance{font-size:12px!important;color:#b4afbe;line-height:1.8;margin-top:20px}
+.billing-retry{font:inherit;color:inherit;background:transparent;border:0;padding:3px;text-decoration:underline;cursor:pointer}
+@media(max-width:800px){.tiptoe-facts-grid{grid-template-columns:1fr}}
+@media(max-width:480px){.tiptoe-facts-card{padding:19px 15px}.tiptoe-facts-table{font-size:12px}.tiptoe-facts-table th,.tiptoe-facts-table td{padding:12px 3px}}
