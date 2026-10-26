@@ -1,3 +1,4 @@
+import { VideoGeneratorsNav } from "@/components/video-generators-nav";
 import { ArrowRight, Clock3, Heart, ShieldCheck, Sparkles, WandSparkles } from "lucide-react";
 import Image from "next/image";
 import { DemoVideo } from "@/components/demo-video";
@@ -29,7 +30,7 @@ export default function HomePage() {
       <header className="site-header">
         <div className="nav-content">
           <a className="brand" href="/" aria-label="Zombie Video Lab home"><span className="brand-mark" aria-hidden="true"><span className="brand-pulse">✳</span></span><span>ZOMBIE<span className="brand-light">VIDEO</span>LAB<span className="brand-dot">.</span></span></a>
-          <nav className="nav-links" aria-label="Main navigation"><a href="#how-it-works">How it works</a><a href="#questions">FAQ</a><a className="public-blog-link" href="/blog">Blog</a><a className="nav-action" href="#generator">Try the tool <ArrowRight size={14} /></a></nav>
+          <nav className="nav-links" aria-label="Main navigation"><VideoGeneratorsNav/><a href="#how-it-works">How it works</a><a href="#questions">FAQ</a><a className="public-blog-link" href="/blog">Blog</a><a className="nav-action" href="#generator">Try the tool <ArrowRight size={14} /></a></nav>
         </div>
       </header>
 

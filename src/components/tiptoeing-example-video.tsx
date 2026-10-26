@@ -7,13 +7,13 @@ const previews = {
     src: "/tiptoeing-reference.mp4", poster: "/tiptoeing-reference-poster.jpeg",
     width: 854, height: 486, tags: ["854 × 486", "15s", "Landscape"],
     label: "Original Tiptoeing In My Jordans movement and music reference",
-    note: "Original movement and music reference. Muted by default; unmute the player to listen. New generations request similar AI-created background music, not an identical song or perfectly matched choreography.",
+    note: "Original movement reference with audio. Muted by default; unmute the player to listen. New generations use the visual reference and request a silent video, without music or dialogue.",
   },
   result: {
     src: "/tiptoeing-example-v1.mp4", poster: "/tiptoeing-example-poster.webp",
     width: 854, height: 480, tags: ["480p", "15s", "16:9"],
     label: "Real 15-second Tiptoeing In My Jordans AI result, 480p landscape, older silent example",
-    note: "Real output created from two photos. This earlier example has no soundtrack; new generations request AI-created music. Faces, details, motion and musical timing can vary between generations.",
+    note: "Real output created from two photos. This example has no soundtrack; new generations also request a silent video. Faces, details and motion can vary between generations.",
   },
 } as const;
 

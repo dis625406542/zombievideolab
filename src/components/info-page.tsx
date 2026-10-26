@@ -1,3 +1,4 @@
+import { VideoGeneratorsNav } from "@/components/video-generators-nav";
 import type { ReactNode } from "react";
 import { CONTACT_EMAIL, UPDATED } from "@/lib/info";
 
@@ -11,7 +12,7 @@ export function InfoPage({ label, title, introduction, sections }: {
 }) {
   return (
     <div className="page-shell info-shell">
-      <header className="site-header"><div className="nav-content"><a className="brand" href="/" aria-label="Zombie Video Lab home"><span className="brand-mark" aria-hidden="true"><span className="brand-pulse">✳</span></span><span>ZOMBIE<span className="brand-light">VIDEO</span>LAB<span className="brand-dot">.</span></span></a><nav className="nav-links" aria-label="Main navigation"><a href="/about">About</a><a href="/contact">Contact</a><a className="public-blog-link" href="/blog">Blog</a><a className="nav-action" href="/#generator">Explore the tool</a></nav></div></header>
+      <header className="site-header"><div className="nav-content"><a className="brand" href="/" aria-label="Zombie Video Lab home"><span className="brand-mark" aria-hidden="true"><span className="brand-pulse">✳</span></span><span>ZOMBIE<span className="brand-light">VIDEO</span>LAB<span className="brand-dot">.</span></span></a><nav className="nav-links" aria-label="Main navigation"><VideoGeneratorsNav/><a href="/about">About</a><a href="/contact">Contact</a><a className="public-blog-link" href="/blog">Blog</a><a className="nav-action" href="/#generator">Explore the tool</a></nav></div></header>
       <main className="info-main wrapper">
         <a className="info-back" href="/">← Back to the tool</a>
         <p className="eyebrow">{label}</p>

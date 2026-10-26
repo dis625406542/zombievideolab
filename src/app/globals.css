@@ -282,3 +282,17 @@ a:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offse
 .guide-callout>a{display:inline-flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid #75757f;padding-block:8px;font-size:14px}
 @media(max-width:700px){.guide-callout{flex-direction:column;align-items:flex-start;padding:22px}.nav-links>a.public-blog-link{display:inline-flex;margin-right:14px}.nav-content:has(.public-blog-link) .nav-action{padding:10px;font-size:11px;gap:5px}}
 @media(max-width:340px){.nav-content:has(.public-blog-link) .nav-action{display:none}.nav-links>a.public-blog-link{margin-right:0}}
+
+/* Shared tool discovery: keep the popup above the hero and mobile controls on two rows. */
+.site-header:has(.video-generators-nav) { position: relative; z-index: 30; }
+@media (min-width: 701px) and (max-width: 1100px) {
+  .nav-content:has(.video-generators-nav) .nav-links { gap: 16px; font-size: 11px; }
+  .nav-content:has(.video-generators-nav) .brand { font-size: 14px; }
+}
+@media (max-width: 700px) {
+  .site-header:has(.video-generators-nav) { height: auto; }
+  .nav-content:has(.video-generators-nav) { flex-wrap: wrap; gap: 8px; padding-block: 12px 8px; }
+  .nav-content:has(.video-generators-nav) .nav-links { width: 100%; gap: 12px; }
+  .nav-content:has(.video-generators-nav) .nav-links > .public-blog-link { display: inline-flex; align-items: center; min-height: 44px; margin: 0; }
+  .nav-content:has(.video-generators-nav) .nav-action { display: inline-flex; justify-content: center; margin-left: auto; min-height: 44px; padding: 10px; font-size: 11px; }
+}
