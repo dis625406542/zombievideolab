@@ -16,6 +16,8 @@ export const runtime="nodejs";
 export const maxDuration=300;
 const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:{"Cache-Control":"no-store"}});
 export async function POST(request:Request) {
+ // The legacy checkout is for a different product. Keep it inaccessible until a Tiny Desk-specific checkout is reviewed.
+ if(process.env.TINY_DESK_CHECKOUT_ENABLED!=="true") return json({error:"Tiny Desk checkout is not available yet. No payment was taken."},503);
  if(!sameOrigin(request)) return json({error:"Invalid request origin."},403);
  const visitor=visitorFrom(request);
  if(!visitor) return json({error:"Refresh this page first and keep your browser cookie."},401);

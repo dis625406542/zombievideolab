@@ -1,0 +1,75 @@
+export const tinyGuides = [
+  {
+    slug: "tiny-desk-ai-video-guide",
+    title: "How to make a Tiny Desk AI video from one photo",
+    description: "From choosing a portrait to planning the concert scene: a practical walkthrough, with a clear look at what our preview can do today.",
+    date: "October 29, 2026", minutes: "2 min read", image: "/tiny-concert-concept.svg", imageClass: "guide-art-one",
+    sections: [
+      { heading: "1. Choose a portrait with room to breathe", paragraphs: ["Start with a sharp photo of one adult who has agreed to appear. Keep the face visible and leave some space around the head and shoulders. Soft window light is a useful starting point; a busy group photo or a tightly cropped face gives you less room to imagine a microphone and a performance setting.", "In our current studio, selecting a JPG, PNG or WebP up to 10 MB creates a local browser preview. It does not upload the picture, transform it or start a video job."] },
+      { heading: "2. Decide on a small-room concert mood", paragraphs: ["Think bookshelves, warm lamps and a performer close to the microphone, rather than a huge arena. Choose one visual direction: a quiet acoustic session, a colorful rehearsal room or a late-night set. The four illustrations on our homepage show framing ideas, not four guaranteed shots in a finished video."] },
+      { heading: "3. Understand the quality choices", paragraphs: ["The planned options are Standard 480p at $5.99 and HD 720p at $8.99, priced per video rather than as a subscription or credit bundle. Choosing a quality in the preview is not a purchase. Higher resolution alone would not guarantee better face consistency, natural motion or accurate lip sync."] },
+      { heading: "4. Check the result before sharing — after launch", paragraphs: ["Once a working generator exists, review any output for facial changes, awkward hands and misleading details before sharing it. Make clear that the scene is AI-created rather than a real concert appearance.", "For now, Generate and checkout are unavailable. Duration, audio and download details will be published after testing. Tiny Desk AI Videos is independent and is not affiliated with NPR or Tiny Desk Concerts."] },
+    ],
+  },
+  {
+    slug: "tiny-desk-ai-trend-explained",
+    title: "What is the Tiny Desk AI video trend?",
+    description: "The desk-side concert aesthetic explained: the room, the microphone, the close-up framing and the difference from a real performance.",
+    date: "October 29, 2026", minutes: "2 min read", image: "/tiny-concert-concept.svg", imageClass: "guide-art-two",
+    sections: [
+      { heading: "A concert that feels close, not enormous", paragraphs: ["In this guide, Tiny Desk AI means a concert-inspired photo-to-video idea: imagining a person performing in a compact room with a microphone, shelves, warm practical lighting and nearby musicians. The creative appeal is intimacy. Instead of looking at a tiny performer across an arena, the viewer feels close to the session.", "The name evokes the desk-side performance aesthetic associated with Tiny Desk Concerts. An AI interpretation is not an invitation to the official series, evidence of a live performance or an NPR production. Our website is independent and unofficial."] },
+      { heading: "Four visual ingredients to explore", paragraphs: ["Start with the room: shelves, records and small lamps establish the atmosphere. Add a microphone as the main foreground detail. Leave a little room for other musicians or instruments. Finally, bring the camera close enough that the portrait remains the focus. Too many decorative elements can compete with the person you want to feature."] },
+      { heading: "There is no single promised soundtrack", paragraphs: ["A concert-looking clip does not tell you whether it contains music, whether a voice was generated or whether the mouth matches the audio. Those are separate capabilities. Do not assume that every tool using the same trend name produces the same sound, length or camera movement."] },
+      { heading: "Our take on the idea", paragraphs: ["We are exploring warm, portrait-led concert scenes with simple, one-time pricing. Our current homepage uses original concept illustration, not actual generated footage. The studio lets you preview a selected photo locally; generation and payment have not launched.", "Use the concept frames as a mood board, not a quality benchmark. When real outputs are available, they will need their own examples and clearly stated limitations."] },
+    ],
+  },
+  {
+    slug: "tiny-desk-ai-photo-tips",
+    title: "Photo tips for a concert-style AI video",
+    description: "A straightforward checklist for lighting, framing, image quality and consent before you step into a concert-inspired scene.",
+    date: "October 29, 2026", minutes: "2 min read", image: "/tiny-concert-concept.svg", imageClass: "guide-art-three",
+    sections: [
+      { heading: "Make the face easy to see", paragraphs: ["Choose a portrait with the face in focus and both eyes visible. Soft, even lighting makes facial features easier to inspect than a strong overhead light or deep shadow. Avoid sunglasses, hands across the face and heavy beauty filters. You do not need a professional headshot; you do need to see the person clearly.", "Zoom into the original photo before selecting it. If the face already looks blurry or blocky, try a different source rather than enlarging a tiny screenshot. A larger file does not automatically mean a sharper face."] },
+      { heading: "Leave room for the scene", paragraphs: ["A head-and-shoulders or waist-up portrait gives you a useful composition to work from. Leave a small margin above the head and around the shoulders. Avoid cropping through the chin. Keep to one person so there is no ambiguity about who should be the performer."] },
+      { heading: "Keep the input simple", paragraphs: ["A clean background and an unobstructed face make a sensible starting point, but these are preparation suggestions, not tested output guarantees. Our preview accepts JPG, PNG and WebP files up to 10 MB. If your phone saves another format, export a copy in an accepted format instead of simply changing the filename extension."] },
+      { heading: "Consent comes before the camera", paragraphs: ["Use your own picture or a photo of an adult who has agreed to the intended use. Do not use a celebrity, a minor or an unauthorized likeness. Avoid including private information visible in the background.", "The current photo picker keeps the selected image in your browser and does not upload it. A future generation service would require a separately explained upload and retention policy. These tips cannot guarantee exact facial likeness in future output."] },
+    ],
+  },
+  {
+    slug: "tiny-desk-ai-prompt-ideas",
+    title: "Tiny Desk AI prompt ideas: three concert moods",
+    description: "Acoustic afternoon, colorful rehearsal and late-night soul: original scene-writing ideas for a warm, intimate performance look.",
+    date: "October 29, 2026", minutes: "2 min read", image: "/tiny-concert-concept.svg", imageClass: "guide-art-four",
+    sections: [
+      { heading: "Describe the scene, not just the trend name", paragraphs: ["A useful creative brief describes the person, setting, lighting, framing and intended motion. Keep it focused: one performer, one room and one main camera idea. A trend name alone leaves many of those choices unspecified. The examples below are writing exercises for tools that accept prompts, not tested recipes or commands for our preview."] },
+      { heading: "Acoustic afternoon", paragraphs: ["Prompt idea: A consenting adult performer at a microphone in a small, book-lined rehearsal room. Soft afternoon window light, warm wood, a few plants and an acoustic guitar nearby. Medium portrait framing, relaxed expression, a gentle camera push-in. An intimate, informal concert atmosphere.", "The key is restraint. Let the face and microphone carry the composition rather than filling every part of the room with props."] },
+      { heading: "Colorful rehearsal", paragraphs: ["Prompt idea: A portrait-led performance scene in a cozy rehearsal space, with colorful record sleeves, a compact drum kit and amber desk lamps. The performer faces the microphone; the supporting musicians remain in the background. Eye-level camera, warm tones, a playful but uncluttered room.", "Keep background people secondary in your brief. Asking for many faces, moving instruments and elaborate camera motion at once can make it harder to judge which part of a result needs changing."] },
+      { heading: "Late-night soul", paragraphs: ["Prompt idea: A quiet late-night session behind a wooden desk, bookshelves fading into a deep plum background. One warm lamp illuminates the performer and a vintage-style microphone. Close portrait composition, soft shadows and a mostly steady camera. No official logos or broadcast graphics."] },
+      { heading: "Change one detail at a time", paragraphs: ["If you use a working tool elsewhere, adjust one variable at a time, such as framing or light, and review each result. A prompt about singing does not guarantee a generated voice or synchronized lips. Our current studio has no prompt field and does not generate video; these ideas are a mood board for future creative work."] },
+    ],
+  },
+  {
+    slug: "tiny-desk-ai-music-lip-sync",
+    title: "Tiny Desk AI music and lip sync: what to check",
+    description: "A concert visual, a soundtrack and a synchronized vocal performance are different things. Here is how to read the claims before trying a tool.",
+    date: "October 29, 2026", minutes: "2 min read", image: "/tiny-concert-concept.svg", imageClass: "guide-art-five",
+    sections: [
+      { heading: "A microphone in the picture is not an audio feature", paragraphs: ["A performer can appear at a microphone in a completely silent clip. Background music can also be added to a video without the performer actually singing. Treat the concert setting, audio track, generated voice and lip synchronization as separate questions rather than assuming that one includes all the others."] },
+      { heading: "Ask what happens to the soundtrack", paragraphs: ["Before using a tool, look for a clear explanation of whether the output is silent, uses supplied audio or creates new audio. Check whether you must provide your own track and whether it can be changed. A demo with music does not, by itself, explain which audio features are included in the product.", "Our current Tiny Desk AI Videos preview has no audio generation or soundtrack selection. No original concert recording, song or vocal performance is bundled or promised."] },
+      { heading: "Look closely at lip sync", paragraphs: ["Lip sync is about mouth movement matching the timing of speech or singing. It is not the same as general face animation. When reviewing a real example, listen and watch together: do mouth openings line up with the words, and does the expression stay consistent through the shot? A still illustration cannot demonstrate that capability."] },
+      { heading: "Plan sound separately", paragraphs: ["For a personal creative brief, decide whether you want a silent mood piece, instrumental accompaniment or a vocal performance. Keep that choice separate from the visual prompt. Use material you have permission to use, and do not imply that an AI-created scene is a real recording of someone performing.", "Until our generation workflow has been built and tested, we cannot confirm audio support, lip-sync quality or clip duration. The homepage illustrations communicate the visual direction only. Check the studio status before expecting an export or making plans around an unfinished feature."] },
+    ],
+  },
+  {
+    slug: "tiny-desk-ai-filter-pricing",
+    title: "Tiny Desk AI filter, app or website? Pricing explained",
+    description: "What to check before uploading or paying: tool type, free previews, one-time pricing, quality options and how photos are handled.",
+    date: "October 29, 2026", minutes: "2 min read", image: "/tiny-concert-concept.svg", imageClass: "guide-art-six",
+    sections: [
+      { heading: "Start by checking what the tool actually does", paragraphs: ["A social-camera filter, a mobile app and a website are different experiences. Do not assume that a familiar trend name means a tool is an official filter inside TikTok or Instagram. Look at where the image is selected, what action starts generation and whether an install or account is required.", "Tiny Desk AI Videos is a browser-based website concept. We do not currently offer a downloadable app, social-platform filter or working video generator."] },
+      { heading: "A free preview is not a free generated video", paragraphs: ["Opening a page or selecting a photo can be free while rendering a finished clip is a separate paid step. Check whether a preview is an actual output, a stock example or an illustration. Also check whether downloads, watermarks and resolution are described separately. Our current photo preview is local-only; it produces neither a free nor a paid video."] },
+      { heading: "Our planned one-time prices", paragraphs: ["We plan to offer Standard 480p for $5.99 per video and HD 720p for $8.99 per video. The intended model is one payment per video, without subscriptions or credit bundles. The quality selector shows the planned options, but checkout is disabled and no money is collected.", "These are preview prices, not an active purchase offer. Final product details and checkout terms must be available before a customer can buy. Resolution describes the planned output size; it is not a promise of perfect facial detail or motion."] },
+      { heading: "Check privacy and delivery before paying", paragraphs: ["Before any future purchase, look for a stated delivery process, download availability, retention period and policy for failed generation. Those details should not be guessed from a competitor's website.", "In this version, the selected photo remains in your browser and is not sent to a generation service. We have not published a future server-retention period or delivery guarantee. Wait for those details and a working generator before treating this preview as a finished service."] },
+    ],
+  },
+] as const;

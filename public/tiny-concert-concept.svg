@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1040" fill="none" role="img" aria-label="Illustrated intimate music studio">
+<defs>
+<linearGradient id="wall" x1="70" y1="90" x2="660" y2="990" gradientUnits="userSpaceOnUse"><stop stop-color="#402b39"/><stop offset=".45" stop-color="#271b2b"/><stop offset="1" stop-color="#130e1e"/></linearGradient>
+<radialGradient id="glow" cx="0" cy="0" r="1" gradientTransform="translate(380 425) rotate(90) scale(510 510)" gradientUnits="userSpaceOnUse"><stop stop-color="#d79465" stop-opacity=".44"/><stop offset="1" stop-color="#9f465a" stop-opacity="0"/></radialGradient>
+<linearGradient id="floor" x1="355" y1="725" x2="355" y2="1040" gradientUnits="userSpaceOnUse"><stop stop-color="#513538"/><stop offset="1" stop-color="#160f1c"/></linearGradient>
+<linearGradient id="shirt" x1="200" y1="610" x2="515" y2="850" gradientUnits="userSpaceOnUse"><stop stop-color="#8a394c"/><stop offset="1" stop-color="#3a1e32"/></linearGradient>
+<linearGradient id="desk" x1="35" y1="789" x2="703" y2="836" gradientUnits="userSpaceOnUse"><stop stop-color="#bb784e"/><stop offset=".5" stop-color="#d09c66"/><stop offset="1" stop-color="#8c503e"/></linearGradient>
+<filter id="blur"><feGaussianBlur stdDeviation="34"/></filter>
+</defs>
+<rect width="720" height="1040" fill="url(#wall)"/><rect width="720" height="1040" fill="url(#glow)"/>
+<ellipse cx="347" cy="972" rx="367" ry="161" fill="#ee935c" opacity=".18" filter="url(#blur)"/>
+<!-- shelves and books -->
+<rect x="38" y="142" width="222" height="586" rx="5" fill="#1b1423" stroke="#80504c" stroke-width="10"/>
+<rect x="54" y="324" width="190" height="10" rx="2" fill="#a97257"/><rect x="54" y="518" width="190" height="10" rx="2" fill="#a97257"/><rect x="54" y="699" width="190" height="10" rx="2" fill="#a97257"/>
+<path d="M64 233v86h17v-89zm23-15v101h18V221zm25 25v76h12v-79zm21-16v92h21v-96zm28 15v77h15v-72zm22-28v105h16V215zm21 23v82h24v-76z" fill="#9d5551"/>
+<path d="M64 401v112h19V406zm27 28v84h15v-88zm22-36v120h23V399zm30 22v98h18V410zm26-12v110h19V405zm26 24v86h15v-86zm20-17v103h17v-96z" fill="#b38a63"/>
+<path d="M63 589v105h16v-105zm23 20v85h19v-86zm25-31v116h17V576zm23 11v105h20v-108zm28 18v87h15v-85zm21-34v121h17V573zm23 18v103h22V585z" fill="#815b76"/>
+<rect x="449" y="115" width="233" height="608" rx="5" fill="#1d1523" stroke="#82524f" stroke-width="10"/>
+<rect x="465" y="300" width="201" height="10" fill="#aa7356"/><rect x="465" y="499" width="201" height="10" fill="#aa7356"/><rect x="465" y="694" width="201" height="10" fill="#aa7356"/>
+<path d="M474 224v70h20v-76zm27-32v102h16V195zm24 18v84h22v-88zm29-24v108h20V189zm27 25v83h19v-80zm26-18v101h18V195zm26 25v76h22v-76z" fill="#a36e67"/>
+<path d="M476 392v101h18v-99zm25 16v85h20v-84zm27-34v119h16V379zm23 17v102h21V388zm29-13v115h17V383zm24 26v89h22v-88zm29-25v114h24V385z" fill="#bd976c"/>
+<path d="M475 582v106h17V583zm24 24v82h17v-81zm24-38v120h22V567zm29 25v95h17v-95zm24-14v109h20v-105zm27 20v89h23v-90zm30-23v112h20V581z" fill="#875b70"/>
+<!-- record and warm bulbs -->
+<circle cx="566" cy="352" r="35" fill="#27202c" stroke="#d39b73" stroke-width="5"/><circle cx="566" cy="352" r="17" fill="#f08e86"/><circle cx="566" cy="352" r="4" fill="#efc79d"/>
+<circle cx="106" cy="91" r="11" fill="#f8c98c"/><circle cx="106" cy="91" r="35" fill="#eca976" opacity=".28" filter="url(#blur)"/>
+<circle cx="343" cy="73" r="12" fill="#f9d49e"/><circle cx="343" cy="73" r="52" fill="#ffc180" opacity=".52" filter="url(#blur)"/>
+<circle cx="625" cy="82" r="11" fill="#f8c98c"/><circle cx="625" cy="82" r="39" fill="#eca976" opacity=".34" filter="url(#blur)"/>
+<path d="M0 718H720V1040H0z" fill="url(#floor)"/>
+<!-- backup players behind main character -->
+<ellipse cx="148" cy="610" rx="61" ry="86" fill="#2b1b29"/><circle cx="148" cy="528" r="42" fill="#8d635c"/><path d="M92 679q15-92 56-92t70 92" fill="#3a293a"/>
+<ellipse cx="604" cy="628" rx="63" ry="85" fill="#291d29"/><circle cx="599" cy="538" r="40" fill="#84615a"/><path d="M531 704q15-106 67-106t83 106" fill="#393144"/>
+<!-- drums -->
+<ellipse cx="570" cy="753" rx="74" ry="46" fill="#8b6464" stroke="#e7b784" stroke-width="8"/><path d="M508 758v120q64 48 125-1V754" fill="#633d4c" stroke="#d3a071" stroke-width="8"/><path d="M547 650l-91 150M616 658l-85 137" stroke="#d5ac87" stroke-width="6"/>
+<!-- performer -->
+<path d="M268 538q-61 22-81 112l-35 161 66 24 58-124 3 265h197l4-257 59 128 63-26-44-172q-23-90-90-112l-44 17h-111z" fill="url(#shirt)" stroke="#bf7a69" stroke-width="7"/>
+<path d="M298 550l42 85 38-39 42 38 43-83" stroke="#d7a783" stroke-width="13" stroke-linecap="round"/>
+<path d="M327 621l32 46-35 148M436 618l-32 49 36 148" stroke="#bd7180" stroke-width="12"/>
+<rect x="312" y="498" width="101" height="101" rx="37" fill="#bd8268"/>
+<ellipse cx="361" cy="440" rx="98" ry="120" fill="#c58c73"/>
+<path d="M269 434q-13-146 97-148 94 0 101 149l-16-33-13-67q-87 38-149 25z" fill="#201b25"/>
+<path d="M291 466q22 19 47 6m38 0q28 16 51-6" stroke="#6d473d" stroke-width="7" stroke-linecap="round"/>
+<path d="M337 526q25 16 52-1" stroke="#863f43" stroke-width="7" stroke-linecap="round"/>
+<ellipse cx="211" cy="816" rx="34" ry="28" fill="#b88470"/><ellipse cx="582" cy="828" rx="34" ry="28" fill="#ae796a"/>
+<!-- microphone and front desk -->
+<path d="M375 488v358" stroke="#eac49e" stroke-width="9"/><rect x="351" y="435" width="46" height="94" rx="23" fill="#ded1b6" stroke="#5c4d55" stroke-width="7"/><path d="M342 492q0 49 32 49t33-49" stroke="#d4c5aa" stroke-width="7"/><path d="M342 848h74" stroke="#eac49e" stroke-width="8" stroke-linecap="round"/>
+<path d="M15 805q342-45 689 0l16 62q-354 62-720 0z" fill="url(#desk)" stroke="#e4b47d" stroke-width="6"/>
+<path d="M0 873q345 53 720 0v167H0z" fill="#50313a"/><path d="M7 903q344 53 706 0" stroke="#8a5a50" stroke-width="8"/>
+<circle cx="110" cy="799" r="15" fill="#d49b70"/><path d="M103 778v-50" stroke="#588472" stroke-width="7"/>
+<path d="M489 795l26-43 27 45" stroke="#d9b595" stroke-width="5"/><path d="M515 751v-36" stroke="#c49976" stroke-width="5"/>
+<rect x="0" y="0" width="720" height="1040" fill="url(#glow)" opacity=".32"/>
+</svg>

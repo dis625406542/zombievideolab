@@ -1,5 +1,5 @@
-// The apex permanently redirects to www. Normalize an older Vercel env value as well.
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://www.zombievideolab.com").replace(/^https?:\/\/zombievideolab\.com$/i, "https://www.zombievideolab.com");
-export const SITE_NAME = "Zombie Video Lab";
-export const TITLE = "Zombie Couple Video Generator | Zombie Video Lab";
-export const DESCRIPTION = "Create an 8-second zombie couple video from two consenting adult portraits. Choose 480p or 720p with one-time Stripe checkout when available; no account or subscription.";
+// This branch is a separate website: never let an old deployment env point SEO to the previous domain.
+export const SITE_URL = "https://tinydeskaivideos.com";
+export const SITE_NAME = "Tiny Desk AI Videos";
+export const TITLE = "Tiny Desk AI Video Generator | Tiny Desk AI Videos";
+export const DESCRIPTION = "Explore the Tiny Desk AI video trend. Preview a cozy desk-side concert concept and planned one-time pricing: $5.99 standard or $8.99 HD. AI generation coming soon.";

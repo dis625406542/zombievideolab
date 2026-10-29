@@ -97,3 +97,14 @@ export async function deleteInputPhotos(photos: InputPhoto[]) {
     await r2Client(config).send(new DeleteObjectCommand({Bucket:config.bucket,Key:key}));
   }));
 }
+
+// Public demo only. The key is fixed server-side; no user-supplied object keys.
+export async function getTinyDeskSampleObject(range?: string) {
+  const config = getR2Config();
+  if (!config) return null;
+  return r2Client(config).send(new GetObjectCommand({
+    Bucket: config.bucket,
+    Key: "tiny-desk-ai/sample-dogs.mp4",
+    ...(range ? { Range: range } : {}),
+  }));
+}
